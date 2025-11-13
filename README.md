@@ -15,3 +15,9 @@
 - Backend: Convex
 - Auth: Clerk
 - payment: Paddle
+
+# 초기설정
+```bash
+npx convex dev
+
+```

@@ -1,0 +1,21 @@
+# 개요
+`components`의 내용들 중 어떤 것을 최종적으로 표시할지 결정함.
+
+# Pseudo-code
+from components import app-header, explore-plane, pending-plane
+
+if app-header.AppHeader.currentMode == "explore":
+    main_display = explore-plane
+elif app-header.AppHeader.currentMode == "pending":
+    main_display = pending-plane
+else:
+    Box(
+      text: {content: "Error", alignment: "center"}
+    )
+
+VerticalGrid(
+    elements: [
+        app-header.AppHeader,
+        main_display
+    ]
+)

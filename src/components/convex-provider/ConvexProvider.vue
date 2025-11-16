@@ -29,7 +29,7 @@ import { useConvexClient } from "convex-vue";
 import { useUser, useSession } from "@clerk/vue";
 import { provide, ref, watch } from "vue";
 import { useConvexMutation } from "convex-vue";
-import { api } from "../../convex/_generated/api";
+import { api } from "../../../convex/_generated/api";
 import LoadingSpinner from "./LoadingSpinner.vue";
 
 /**

@@ -1,6 +1,8 @@
 <template>
   <div class="loading-spinner-container" :class="sizeClass">
-    <div class="loading-spinner" :class="[sizeClass, colorClass]"></div>
+    <div class="loading-spinner" :class="[sizeClass, colorClass]">
+      <span class="spinner-dot" v-for="i in 3" :key="i" :style="{ animationDelay: `${(i - 1) * 0.15}s` }"></span>
+    </div>
     <p v-if="showText" class="loading-text">{{ text }}</p>
   </div>
 </template>
@@ -79,74 +81,96 @@ const colorClass = computed(() => `spinner-${props.color}`);
 
 /**
  * 부드러운 애니메이션이 있는 기본 스피너 스타일.
- * 최적의 성능을 위해 CSS 변환 및 전환을 사용합니다.
+ * 점들이 순차적으로 나타나는 현대적인 디자인입니다.
  */
 .loading-spinner {
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
   margin-bottom: 8px;
 }
 
 /**
- * 작은 스피너 변형 (24px).
+ * 스피너의 각 점 요소.
+ * 순차적으로 나타나는 애니메이션 효과를 가집니다.
+ */
+.spinner-dot {
+  display: inline-block;
+  border-radius: 50%;
+  animation: bounce 1.4s ease-in-out infinite;
+  opacity: 0.3;
+}
+
+/**
+ * 작은 스피너 변형.
  * 인라인 로딩 상태 및 작은 컴포넌트에 사용됩니다.
  */
+.spinner-small .spinner-dot {
+  width: 6px;
+  height: 6px;
+}
+
 .spinner-small {
-  width: 24px;
-  height: 24px;
-  border: 2px solid #e9ecef;
+  gap: 3px;
 }
 
 /**
- * 중간 스피너 변형 (32px).
+ * 중간 스피너 변형.
  * 대부분의 로딩 시나리오에서 사용되는 기본 크기입니다.
  */
+.spinner-medium .spinner-dot {
+  width: 8px;
+  height: 8px;
+}
+
 .spinner-medium {
-  width: 32px;
-  height: 32px;
-  border: 3px solid #e9ecef;
+  gap: 4px;
 }
 
 /**
- * 큰 스피너 변형 (48px).
+ * 큰 스피너 변형.
  * 전체 페이지 로딩 상태 및 눈에 띄는 로딩 표시기에 사용됩니다.
  */
+.spinner-large .spinner-dot {
+  width: 12px;
+  height: 12px;
+}
+
 .spinner-large {
-  width: 48px;
-  height: 48px;
-  border: 4px solid #e9ecef;
+  gap: 6px;
 }
 
 /**
- * 기본 색상 변형 (파란색).
+ * 기본 색상 변형 (grey-lv3).
  * 일반 로딩 상태의 기본 색상입니다.
  */
-.spinner-primary {
-  border-top-color: #007bff;
+.spinner-primary .spinner-dot {
+  background-color: var(--grey-lv3);
 }
 
 /**
- * 성공 색상 변형 (녹색).
+ * 성공 색상 변형 (main).
  * 성공적인 작업 및 긍정적인 피드백에 사용됩니다.
  */
-.spinner-success {
-  border-top-color: #28a745;
+.spinner-success .spinner-dot {
+  background-color: var(--main);
 }
 
 /**
  * 경고 색상 변형 (노란색).
  * 경고 상태 및 주의 표시기에 사용됩니다.
  */
-.spinner-warning {
-  border-top-color: #ffc107;
+.spinner-warning .spinner-dot {
+  background-color: #ffc107;
 }
 
 /**
  * 위험 색상 변형 (빨간색).
  * 오류 상태 및 중요한 작업에 사용됩니다.
  */
-.spinner-danger {
-  border-top-color: #dc3545;
+.spinner-danger .spinner-dot {
+  background-color: var(--notification);
 }
 
 /**
@@ -157,43 +181,43 @@ const colorClass = computed(() => `spinner-${props.color}`);
   color: #6c757d;
   font-size: 14px;
   margin: 0;
+  margin-top: 8px;
   font-weight: 500;
 }
 
 /**
  * 컴팩트 레이아웃을 위한 작은 텍스트 변형.
  */
-.spinner-small .loading-text {
+.loading-spinner-container.spinner-small .loading-text {
   font-size: 12px;
+  margin-top: 6px;
 }
 
 /**
  * 눈에 띄는 로딩 상태를 위한 큰 텍스트 변형.
  */
-.spinner-large .loading-text {
+.loading-spinner-container.spinner-large .loading-text {
   font-size: 16px;
+  margin-top: 10px;
 }
 
 /**
- * 회전 애니메이션 키프레임.
- * 스피너를 위한 부드러운 회전 애니메이션을 생성합니다.
+ * 점이 튀어오르는 애니메이션 키프레임.
+ * 부드럽고 자연스러운 로딩 효과를 생성합니다.
  */
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
+@keyframes bounce {
 
+  0%,
+  80%,
   100% {
-    transform: rotate(360deg);
+    transform: scale(0.6);
+    opacity: 0.3;
   }
-}
 
-/**
- * 대화형 로딩 상태를 위한 호버 효과.
- * 호버 시 미묘한 시각적 피드백을 제공합니다.
- */
-.loading-spinner:hover {
-  filter: brightness(1.1);
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 /**
@@ -201,8 +225,9 @@ const colorClass = computed(() => `spinner-${props.color}`);
  * 사용자의 감소된 모션 선호 설정을 존중합니다.
  */
 @media (prefers-reduced-motion: reduce) {
-  .loading-spinner {
+  .spinner-dot {
     animation: none;
+    opacity: 1;
   }
 }
 </style>

@@ -1,0 +1,6 @@
+# 개요
+
+recommended-n-search 페이지에서 제공되는 검색기능을 위한 TypeScript 함수.
+
+
+# Pseudo code

@@ -1,0 +1,37 @@
+# 개요
+
+추천페이지에 표시되는 추천 콘텐츠 컴포넌트.
+
+# Pseudo code
+
+## input
+
+Props {
+    title: string,
+    description: string,
+    favicon: string,
+    url: string,
+    keyword: list[string],
+}
+
+## component
+
+Box(
+    element: 
+        VerticalGrid(
+            elements: [
+                HorizontalGrid(elements: [RenderFavicon(favicon), Text(title, fontColor: color_template.font-black)]),
+                HorizontalLine(color: color_template.grey-lv3, width: 1px),
+                Text(description, fontColor: color_template.font-black),
+                HorizontalGrid(elements: [Text("#" + k, fontColor: color_template.grey-lv3) for k in keyword]),
+            ]
+        ),
+    fill: {
+        borderColor: color_template.grey-lv2,
+        borderWidth: 2px,
+        borderRadius: 0,
+    },
+    onPress: () => {
+        OpenNewTab(url)
+    }
+)

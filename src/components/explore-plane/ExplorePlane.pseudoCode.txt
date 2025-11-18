@@ -1,0 +1,30 @@
+# 개요
+
+`탐색하기` 페이지를 렌더링하기 위해 개별 컴포넌트들을 조합하는 페이지.
+
+
+# Pseudo code
+
+## import
+import Recommended.vue
+import Sponsor.vue
+import BottomSheet.vue
+import color_template.css
+
+## input
+
+
+## component
+
+listed_pages = [Recommended(page) for page in pages]
+listed_pages.random_insert(Sponsor())
+
+RecommendedGrid = VerticalGrid(elements: listed_pages)
+
+DynamicDisplayRatio(
+    direction: "vertical",
+    elements: [RecommendedGrid, BottomSheet()],
+    ratios: [recommended_ratio, bottom_sheet_ratio]{
+        // 비율 관리 함수
+    }
+)

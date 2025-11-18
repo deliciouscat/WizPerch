@@ -1,0 +1,14 @@
+# 개요
+
+추천페이지와 동일한 계층에 삽입되는 Sponsor 컴포넌트. 당장은 placeholder로 구현.
+
+# Pseudo code
+
+Box(
+    element: 
+        Placeholder(    // 사각형에 사선
+            width: 100%,
+            height: 100px,
+            onClikUrl: "https://github.com/deliciouscat"
+            ),
+)

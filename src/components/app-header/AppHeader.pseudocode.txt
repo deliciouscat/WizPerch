@@ -3,9 +3,11 @@
 
 # Pseudo code
 import ToolBar.vue      // output: {toolbar_operation: "search" or "add", toolbar_input: str}
+import UserProfile.vue
 import color_template.css
 import config
 import i18n
+import phospor-icons
 
 config = ~      // 적절한 라이브러리로 관리
 
@@ -24,8 +26,8 @@ Class DisplayMode(
 )
 
 display_mode = DisplayMode(
-    currentMode: "bookmark", 
-    swapTo: "explore", 
+    currentMode: "explore", 
+    swapTo: "pending", 
     locale: config.locale,  // with i18n
     overlay: null
     )
@@ -33,8 +35,8 @@ display_mode = DisplayMode(
 VerticalGrid(
     HorizontalGrid(
         Image("src/components/assets/logo.svg"),
-        IconButton("material-symbols: account_circle", color: color_template.main),
-        IconButton("material-symbols: settings", color: color_template.main),
+        IconButton(phospor-icons.bold("user-circle")),
+        IconButton(phospor-icons.bold("gear-fine")),
         BoxButton(
             contains: Text(display_mode.swapTo),
             border: color_template.grey-lv2,
@@ -49,17 +51,17 @@ VerticalGrid(
 # Display pages
 
 function account_menu_display(){
-    console.log("준비중인 기능입니다.")    // 나중에 구현할 것임. 주석으로 '// account_menu'라고 메모해 둘 것.
+    Render(UserProfile())
     display_mode.overlay = "account"
 }
 
 function settings_menu_display(){
-    console.log("준비중인 기능입니다.")    // 나중에 구현할 것임. 주석으로 '// settings_menu'라고 메모해 둘 것.
+    Render(Settings())
     display_mode.overlay = "settings"
 }
 
 
-// 화면 구현은 `collections`, `explore-page` 디렉토리에서 별도 모듈로 구현될 것임. `AppHeader`는 제어를 위한 것.
+// 화면 구현은 `explore-plane`, `pending-plane` 디렉토리에서 별도 모듈로 구현될 것임. `AppHeader`는 제어를 위한 것.
 
 # Output 양식
 // display_mode와 ToolBar의 값을 다른 컴포넌트로 전달.

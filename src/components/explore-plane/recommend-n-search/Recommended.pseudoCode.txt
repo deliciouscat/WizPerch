@@ -30,8 +30,9 @@ Box(
         borderColor: color_template.grey-lv2,
         borderWidth: 2px,
         borderRadius: 0,
+        hover: color_template.grey-lv1,
     },
-    onPress: () => {
+    onPress: {
         OpenNewTab(url)
     }
 )

@@ -1,5 +1,6 @@
 # 개요
 `components`의 내용들 중 어떤 것을 최종적으로 표시할지 결정함.
+작성되어 있는 Clerk 인증 / Convex 백엔드 시스템을 잘 통합해야 함. 
 
 # Pseudo-code
 from components import app-header, explore-plane, pending-plane

@@ -1,9 +1,11 @@
 # 기능
 북마크 관리 Chrome Extention의 AppHeader 영역. 메인 페이지 영역의 contents display를 제어한다.
 
+
 # Pseudo code
 import ToolBar.vue      // output: {toolbar_operation: "search" or "add", toolbar_input: str}
 import UserProfile.vue
+import Settings.vue
 import color_template.css
 import config
 import i18n

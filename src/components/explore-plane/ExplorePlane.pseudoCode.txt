@@ -6,25 +6,85 @@
 # Pseudo code
 
 ## import
-import Recommended.vue
-import Sponsor.vue
-import BottomSheet.vue
+import recommend-n-search/Recommended.vue
+import recommend-n-search/Sponsor.vue
+import bottom-sheet/BottomSheet.vue
 import color_template.css
 
 ## input
 
+Props {
+    pages: list[dict{
+        title: string,
+        description: string,
+        favicon: string,
+        url: string,
+        keyword: list[string],
+    }],
+    comments: list[dict{
+        nametag: string,
+        content: string,
+        commentId: string,
+    }],
+}
 
 ## component
+
+SaveTabsButton = BoxButton(
+    contains: Text(i18n.save_tabs),
+    onPress: {
+        1. Convex에 현재 열려있는 탭들의 정보를 저장:
+            {
+                save_date: datetime,
+                pages: list[dict]   // input과 동일한 양식
+            }
+        2. 저장 성공 알림 표시
+        3. pending-plane으로 이동
+    }
+    appearance: {
+        borderRadius: 4,
+        bgColor: color_template.main,
+        hoverBgColor: color_template.grey-lv3,
+        textColor: color_template.grey-lv1,
+    },
+)
+
+suggestions = json.load("query_suggestions.json")
+suggestions_appearance = {
+    borderRadius: 4,
+    hoverBgColor: color_template.grey-lv1,
+    textColor: color_template.font-black,
+}
+
+last_clicked = null
+if last_clicked == "search":
+    SuggestionsButton = [BoxButton(contains: Text(s), onPress: {텍스트를 ToolBar에 입력, toolbar operation 수행}, appearance: suggestions_appearance) for s in suggestions.search]
+elif last_clicked == "talk":
+    SuggestionsButton = [BoxButton(contains: Text(s), onPress: {텍스트를 ToolBar에 입력, toolbar operation 수행}, appearance: suggestions_appearance) for s in suggestions.talk]
+else:
+    SuggestionsButton = [SaveTabsButton]
+
 
 listed_pages = [Recommended(page) for page in pages]
 listed_pages.random_insert(Sponsor())
 
-RecommendedGrid = VerticalGrid(elements: listed_pages)
+
+RecommendedGrid = VerticalGrid(elements: [
+    **SuggestionsButton,
+    **listed_pages
+    ]
+)
 
 DynamicDisplayRatio(
     direction: "vertical",
     elements: [RecommendedGrid, BottomSheet()],
     ratios: [recommended_ratio, bottom_sheet_ratio]{
         // 비율 관리 함수
+        bottom_sheet_ratio = (18*num_of_comments - 4*num_of_recommended_pages - 5)%     // 동적 사이즈 계산식
+        if bottom_sheet_ratio < 15%:
+            bottom_sheet_ratio = 15%
+        if bottom_sheet_ratio > 60%:
+            bottom_sheet_ratio = 60%
+        recommended_ratio = 1 - bottom_sheet_ratio
     }
 )

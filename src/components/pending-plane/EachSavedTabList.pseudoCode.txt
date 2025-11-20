@@ -1,0 +1,37 @@
+# 개요
+pending-plane에서 각 저장된 탭을 표시하는 컴포넌트.
+
+# Pseudo code
+
+## input
+Props {
+    save_date: string,
+    tabs: list[dict{
+        title: string,
+        description: string,
+        favicon: string,
+        url: string,
+    }],
+}
+
+## component
+
+favicons = HorizontalGrid(
+    elements: [RenderFavicon(favicon) for favicon in favicons]
+)
+
+HorizontalGrid(
+    elements: [
+        Box(appearance: {bgColor: color_template.grey-lv3, hoverBgColor: color_template.main}),  // indicator. hover는 이 컴포넌트 전체에 대해 판정됨.
+        VerticalGrid(
+            elements: [
+                Text(save_date),
+                Text(keyword),
+                favicons
+            ]
+        )
+    ],
+    onPress: {
+        OpenNewTabs(tabs.getall(url))
+    }
+)

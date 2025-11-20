@@ -1,6 +1,6 @@
 # 개요
 
-추천페이지와 동일한 계층에 삽입되는 Sponsor 컴포넌트. 당장은 placeholder로 구현.
+추천페이지와 동일한 계층에 삽입되는 Sponsor 광고 컴포넌트. 당장은 placeholder로 구현.
 
 # Pseudo code
 

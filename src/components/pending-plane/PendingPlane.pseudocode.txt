@@ -1,0 +1,55 @@
+# 개요
+`보관된 탭` 페이지를 렌더링하기 위해 개별 컴포넌트들을 조합하는 페이지.
+현재 날짜를 기준으로 오늘/어제/이번 주/이번 달/이번 해/오래 전 등으로 분류하여 표시.
+
+
+# Pseudo code
+
+## input
+Props {
+    tabs: list[dict{
+        save_date: string,
+        pages: list[dict{
+            title: string,
+            description: string,
+            favicon: string,
+            url: string,
+        }],
+    }],
+}
+
+## function
+
+function date_range(date: datetime) :
+    today = datetime.now().date()
+    date_range = [
+        {date: today, name: i18n.today},
+        {date: today - 1, name: i18n.yesterday},
+        {date: today - 7, name: i18n.last_7_d},
+        {date: today - 30, name: i18n.last_30_d},
+        {date: today - 365, name: i18n.last_year},
+    ]
+    for d in date_range:
+        if today <= d.date:
+            return d.name
+    return i18n.long_ago
+
+## component
+
+tabs_period = tabs.copy()
+tabs_period.add_item("period", map(function=date_range, input_key="save_date"))
+
+// 같은 period에 속한 탭들을 묶은 component
+def TabsPeriod(tabs_group):
+    // tabs_group은 같은 period에 속한 탭들을 묶은 목록. 각 tabs는 각 날짜에 저장한 탭 묶음. tabs는 여러 개의 탭을 포함할 수 있음.
+    return VerticalGrid(
+        elements: [
+            Text(tabs_group.get("period"), fontColor: color_template.grey-lv3),
+            HorizontalLine(color: color_template.grey-lv3, width: 1px),
+            **[EachSavedTabList(tabs) for tabs in tabs_group.get("tabs")],  // 각 날짜에 저장한 탭 묶음을 컴포넌트로 변환
+        ]
+    )
+
+VerticalGrid(
+    elements: [TabsPeriod(tabs_group) for tabs_group in tabs_period]
+)

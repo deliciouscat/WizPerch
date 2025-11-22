@@ -1,17 +1,13 @@
 # 개요
 개별 댓글을 표시하는 컴포넌트로, 확장/축소 상태를 props로 받아 처리
 
-# Pseudo-code
-import color_template.css
-import markdown     // 프레임워크 별 적절한 markdown 라이브러리
-import katex        // 프레임워크 별 적절한 katex 라이브러리
+# Design Pattern
+- **Presentational Component**: 상태를 직접 관리하지 않고 Props로 받아 렌더링.
+- **Controlled Component**: 확장 상태(`isExpanded`)를 부모가 제어.
 
-Config(
-    call: [
-        nametag, content, commentId, isExpanded, onExpand
-    ]
-)
+# Input / Output
 
+## Input
 Props {
     nametag: string,
     content: string,
@@ -19,6 +15,16 @@ Props {
     isExpanded: boolean,
     onExpand: (id: string) => void
 }
+
+## Output
+Output {
+    expandRequest: string  // commentId
+}
+
+# Pseudo-code
+import color_template.css
+import markdown     // 프레임워크 별 적절한 markdown 라이브러리
+import katex        // 프레임워크 별 적절한 katex 라이브러리
 
 VerticalGrid(
     elements: [

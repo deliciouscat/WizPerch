@@ -19,6 +19,9 @@
 - 세부적인 지시는 `*.pseudoCode.txt`에 작성됨. 
 - 지침이 없는 부분을 개발할 때, 주요한 변경사항/제안사항은 허가를 요청할 것.
 
+# Vue + Clerk + Convex 템플릿 사용됨
+간단한 로그인이 구현된 템플릿을 clone해온 상태에 몇가지 코드 수정과 pseudo-code 작성이 이루어짐. 구현된 기능을 잘 유지하되 수정이 필요한 부분은 수정할 것.
+
 # 기술스택
 외부 툴킷 적극 사용.
 - Client: Vue/TypeScript/Vite
@@ -30,3 +33,70 @@
 - WikiPedia와 같은 단순한 디자인
 - 특별한 지시가 없으면 border radius는 0임
 - `color_template.css`로 색상 관리.
+
+
+# 디렉토리 구조
+```
+ls:
+README.md         TODO_LIST.md      convex            index.html        node_modules      package-lock.json package.json      src               vite.config.ts
+
+
+tree src:
+src
+├── App.pseudoCode.txt
+├── App.vue
+├── components
+│   ├── app-header
+│   │   ├── AppHeader.pseudocode.txt
+│   │   ├── ToolBar.pseudoCode.txt
+│   │   └── ToolBar.vue
+│   ├── assets
+│   ├── authPlane
+│   ├── convex-provider
+│   │   ├── ConvexProvider.vue
+│   │   ├── LoadingSpinner.vue
+│   │   ├── Settings.vue
+│   │   └── UserProfile.vue
+│   ├── explore-plane
+│   │   ├── ExplorePlane.pseudoCode.txt
+│   │   ├── bottom-sheet
+│   │   │   ├── BottomSheet.pseudoCode.txt
+│   │   │   └── CommentBox.pseudoCode.txt
+│   │   ├── query_suggestions.json
+│   │   ├── recommend-n-search
+│   │   │   ├── Recommended.pseudoCode.txt
+│   │   │   ├── Search.pseudoCode.txt
+│   │   │   └── Sponsor.pseudoCode.txt
+│   │   └── talk-with-ai
+│   └── pending-plane
+│       ├── EachSavedTabList.pseudoCode.txt
+│       └── PendingPlane.pseudocode.txt
+├── env.d.ts
+├── locales
+│   ├── en.json
+│   ├── ja.json
+│   └── ko.json
+├── main.ts
+├── sampledata
+├── stores
+└── styles
+    └── color_template.css
+
+15 directories, 24 files
+
+
+tree convex:
+convex
+├── _generated
+│   ├── api.d.ts
+│   ├── api.js
+│   ├── dataModel.d.ts
+│   ├── server.d.ts
+│   └── server.js
+├── auth.config.js
+├── schema.ts
+├── tsconfig.json
+└── users.ts
+
+2 directories, 9 files
+```

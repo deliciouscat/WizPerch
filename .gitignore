@@ -4,6 +4,7 @@ node_modules/
 # Environment variables
 .env
 .env.local
+.cursor/
 
 # Convex generated files
 convex/_generated/

@@ -1,9 +1,13 @@
 # 개요
-pending-plane에서 각 저장된 탭을 표시하는 컴포넌트.
+pending-plane에서 각 저장된 탭 그룹(날짜별 등)을 표시하는 컴포넌트.
 
-# Pseudo code
+# Design Pattern
+- **List Item + Command**: 아이템 클릭 시 탭 묶음을 여는 커맨드를 실행.
+- **Summary Presenter**: 저장된 탭을 작은 시각적 요약(파비콘, 날짜)으로 표현.
 
-## input
+# Input / Output
+
+## Input
 Props {
     save_date: string,
     tabs: list[dict{
@@ -12,26 +16,56 @@ Props {
         favicon: string,
         url: string,
     }],
+    onOpenTabs: (urls: list[string]) => void,
+    onDeleteTabs: (saveDate: string) => void
 }
+
+## Output
+Output {
+    onTabListOpen: (urls: list[string]) => void,
+    onTabListDelete: (saveDate: string) => void
+}
+
+# Pseudo code
+
+import color_template.css
+import i18n
 
 ## component
 
+// 파비콘 리스트 렌더링
+favicon_list = [tab.favicon for tab in Props.tabs]
 favicons = HorizontalGrid(
-    elements: [RenderFavicon(favicon) for favicon in favicons]
+    elements: [RenderFavicon(favicon) for favicon in favicon_list]
 )
+
+// 탭 개수 표시
+summary_text = Text(
+    str(len(Props.tabs)) + " tabs saved", 
+    fontColor: color_template.grey-lv2
+)
+
+// 탭 열기 핸들러
+function handle_open_tabs() {
+    urls = [tab.url for tab in Props.tabs]
+    Props.onOpenTabs(urls)
+}
 
 HorizontalGrid(
     elements: [
-        Box(appearance: {bgColor: color_template.grey-lv3, hoverBgColor: color_template.main}),  // indicator. hover는 이 컴포넌트 전체에 대해 판정됨.
+        Box(
+            appearance: {
+                bgColor: color_template.grey-lv3, 
+                hoverBgColor: color_template.main
+            }
+        ),  // indicator. hover는 이 컴포넌트 전체에 대해 판정됨.
         VerticalGrid(
             elements: [
-                Text(save_date),
-                Text(keyword),
+                Text(Props.save_date, fontColor: color_template.font-black),
+                summary_text,
                 favicons
             ]
         )
     ],
-    onPress: {
-        OpenNewTabs(tabs.getall(url))
-    }
+    onPress: () => handle_open_tabs()
 )

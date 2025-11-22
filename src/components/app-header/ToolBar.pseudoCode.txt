@@ -1,9 +1,39 @@
 # 기능 
-북마크 관리 Chrome Extention의 AppHeader 영역에 배치되어, plane의 컨텐츠 내에서 검색하을 담당하는 인터페이스. 
+북마크 관리 Chrome Extension의 AppHeader 영역에 배치되어, plane의 컨텐츠 내에서 검색을 담당하는 인터페이스. 
+
+# Design Pattern
+- **State Pattern / Finite State Machine**: Toolbar의 상태(Default, Search, Talk)에 따라 UI 구성요소(Blank, TextInput)의 크기와 배치가 달라짐.
+- **Strategy Pattern**: 입력 모드(Search vs Talk)에 따른 처리 전략 구분.
+- **Command Pattern**: 버튼 클릭 시 `onSubmit` 콜백으로 operation/입력을 전달.
+
+# Input / Output
+
+## Input
+Props {
+    suggestions: {
+        search: list[string],
+        talk: list[string]
+    },
+    onSubmit: (output: ToolbarOutput) => void
+}
+
+## State
+State {
+    currentState: "default" | "search" | "talk",
+    inputValue: string,
+    usedSuggestions: list[string]
+}
+
+## Output
+Output {
+    toolbar_operation: "search" | "talk",
+    toolbar_input: string,
+    suggestions_used: list[string]
+}
 
 # Pseudo Code
 
-import phospor-icons
+import phosphor-icons
 
 Interface BoxSizingSystem(
     Properties(
@@ -40,33 +70,52 @@ Class ToolbarOrder (
 
 appHeaderArea = `앱 헤더 영역 (바깥 클릭 확인하기 위해)`    // Toolbar ⊃ AppHeader ⊃ 전체요소(bottom-sheet, collections 포함)인데, Toolbar를 제외한 AppHeader 영역을 클릭했을 때의 action을 정의하기 위함.
 
-search_button = IconButton(phospor-icons.bold("magnifying-glass"))
-talk_button = IconButton(phospor-icons.bold("robot"))
+search_button = IconButton(phosphor-icons.bold("magnifying-glass"))
+talk_button = IconButton(phosphor-icons.bold("robot"))
 tb_order = ToolbarOrder(
-    placement: [Blank(size: 1, areaFor: "default"), search_button, Blank(size: 0, areaFor: "search"), add_button, Blank(size: 0, areaFor: "talk")]  // default
+    placement: [Blank(size: 1, areaFor: "default"), search_button, Blank(size: 0, areaFor: "search"), talk_button, Blank(size: 0, areaFor: "talk")]  // default
     state: "default"
 )
 toolbar = dynamic HorizontalGrid(tb_order)
 
+// 버튼 클릭 핸들러
+function handle_button_click(button_type: "search" | "talk") {
+    State.currentState = button_type
+    Animate(tb_order, button_type)
+    sleep(0.1 seconds)
+    구현: `~.areaFor==button_type`인 Blank를 TextInputBox로 swap
+}
+
+// 입력 제출 핸들러
+function handle_submit() {
+    Props.onSubmit({
+        toolbar_operation: State.currentState,
+        toolbar_input: State.inputValue,
+        suggestions_used: State.usedSuggestions
+    })
+    reset_to_default()
+}
+
+// 기본 상태로 복귀
+function reset_to_default() {
+    Animate(tb_order, "default")
+    State.currentState = "default"
+    State.inputValue = ""
+    // 이 상태가 되어 있어야 함 : placement = [Blank(size: 1), search_button, Blank(size: 0), talk_button, Blank(size: 0)]
+    // no text input box for default
+}
+
 if `버튼이 클릭되면` :
     if last_click = "search" :
-        Animate(tb_order, last_click)
-        sleep(0.1 seconds)
-        구현: `~.areaFor==last_click`인 Blank를 TextInputBox로 swap
+        handle_button_click("search")
         // 이 상태가 되어 있어야 함 : placement = [Blank(size: 0), search_button, Blank(size: 1), talk_button, Blank(size:0)]
-        placement.swap_blank_to_text_input_box(which_is size:1)
 
     if last_click = "talk" :
-        Animate(tb_order, last_click)
-        sleep(0.1 seconds)
-        구현: `~.areaFor==last_click`인 Blank를 TextInputBox로 swap
+        handle_button_click("talk")
         // 이 상태가 되어 있어야 함 : placement = [Blank(size: 0), search_button, Blank(size: 0), talk_button, Blank(size: 1)]
-        placement.swap_blank_to_text_input_box(which_is size:1)
 
     if last_click not in ["search", "talk"] and last_click in appHeaderArea :
-        Animate(tb_order, "default")
-        // 이 상태가 되어 있어야 함 : placement = [Blank(size: 1), search_button, Blank(size: 0), talk_button, Blank(size: 0)]    // back to default.
-        // no text input box for default
+        reset_to_default()
 
 
 ## Animation Details
@@ -77,9 +126,3 @@ function Animate(tb_order){
     구현: placement에서 `~.areaFor == last_click`인 Blank 요소의 size가 1(최대비율)이 되고 나머지 Blank들은 size가 0(최소비율)으로 축소되도록 animate.
 }
 
-
-## Output 양식
-{
-    toolbar_operation: "search" or "talk",
-    toolbar_input: str
-}

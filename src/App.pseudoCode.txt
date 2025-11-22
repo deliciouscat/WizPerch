@@ -1,22 +1,82 @@
 # 개요
-`components`의 내용들 중 어떤 것을 최종적으로 표시할지 결정함.
+`components`의 내용들 중 어떤 것을 최종적으로 표시할지 결정하는 Composition Root.
 작성되어 있는 Clerk 인증 / Convex 백엔드 시스템을 잘 통합해야 함. 
 
+# Design Pattern
+- **Store Pattern (Pinia)**: `currentMode`와 같은 전역 상태는 Pinia Store(`useAppStore`)를 통해 관리.
+- **Conditional Rendering**: 상태에 따라 메인 뷰 컴포넌트 교체.
+- **Mediator Pattern**: `AppHeader`가 뱉는 `display_mode`와 `toolbar_output`을 중앙에서 감지하고 조율.
+
+# Input / Output
+
+## Input
+Props {
+    initialMode: "explore" | "pending" = "explore",
+    toolbarSuggestions: {
+        search: list[string],
+        talk: list[string]
+    },
+    isAuthenticated: boolean,
+    userId: string | null
+}
+
+## State
+State {
+    currentMode: "explore" | "pending",
+    overlayMode: null | "account" | "settings",
+    toolbarOutput: {
+        toolbar_operation: "search" | "talk",
+        toolbar_input: string,
+        suggestions_used: list[string]
+    } | null
+}
+
+## Output
+Output {
+    mainLayout: VerticalGrid,
+    activePlane: "explore" | "pending",
+    propagatedToolbar: ToolbarOutput
+}
+
 # Pseudo-code
+import { useAppStore } from '@/stores/app'
 from components import app-header, explore-plane, pending-plane
 
-if app-header.AppHeader.currentMode == "explore":
-    main_display = explore-plane
-elif app-header.AppHeader.currentMode == "pending":
-    main_display = pending-plane
+// Pinia Store 초기화
+appStore = useAppStore()
+appStore.currentMode = Props.initialMode || "explore"
+
+// AppHeader로부터 이벤트 수신
+headerOutput = {
+    display_mode: appStore.currentMode,
+    overlay: appStore.overlayMode,
+    toolbar_output: appStore.toolbarOutput
+}
+
+// 메인 디스플레이 결정
+if appStore.currentMode == "explore":
+    main_display = explore-plane(
+        toolbarOutput: headerOutput.toolbar_output,
+        onNavigatePending: () => appStore.currentMode = "pending"
+    )
+elif appStore.currentMode == "pending":
+    main_display = pending-plane(
+        onNavigateExplore: () => appStore.currentMode = "explore"
+    )
 else:
-    Box(
-      text: {content: "Error", alignment: "center"}
+    main_display = Box(
+        text: {content: "Error: Invalid mode", alignment: "center"},
+        fontColor: color_template.error
     )
 
 VerticalGrid(
     elements: [
-        app-header.AppHeader,
+        app-header.AppHeader(
+            initialMode: appStore.currentMode,
+            toolbarSuggestions: Props.toolbarSuggestions,
+            onModeChange: (mode) => appStore.currentMode = mode,
+            onToolbarSubmit: (output) => appStore.toolbarOutput = output
+        ),
         main_display
     ]
 )

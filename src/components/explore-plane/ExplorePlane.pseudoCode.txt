@@ -2,14 +2,20 @@
 
 `탐색하기` 페이지를 렌더링하기 위해 개별 컴포넌트들을 조합하는 페이지.
 
+# Design Pattern
+- **Container Component**: 데이터를 하위 컴포넌트(Recommended, BottomSheet)에 전달하는 역할.
+- **Composition Pattern**: Recommended, Sponsor, BottomSheet 등을 조합하여 페이지 구성.
+- **Event Aggregator**: Toolbar 입력, 댓글 작성 등의 이벤트를 수집하고 처리.
 
 # Pseudo code
 
 ## import
 import recommend-n-search/Recommended.vue
 import recommend-n-search/Sponsor.vue
+import recommend-n-search/Search.ts
 import bottom-sheet/BottomSheet.vue
 import color_template.css
+import i18n
 
 ## input
 
@@ -26,21 +32,58 @@ Props {
         content: string,
         commentId: string,
     }],
+    toolbarOutput: {
+        toolbar_operation: "search" | "talk",
+        toolbar_input: string,
+        suggestions_used: list[string]
+    } | null,
+    commentAuthor: {
+        nickname: string,
+        epithet: string
+    },
+    onSaveTabs: (tabs: list[dict]) => Promise<void>,
+    onNavigatePending: () => void,
+    onSubmitComment: (content: string) => Promise<void>,
+    onCommentExpand: (commentId: string | null) => void
+}
+
+## State
+State {
+    filteredPages: list[dict],
+    saveTabsStatus: "idle" | "loading" | "success" | "error"
+}
+
+## Output
+Output {
+    recommendedLayout: VerticalGrid,
+    saveTabsRequest: {
+        status: "idle" | "loading" | "success" | "error",
+        payload: list[dict] | null
+    }
 }
 
 ## component
 
+// 탭 저장 핸들러
+async function handle_save_tabs() {
+    try {
+        State.saveTabsStatus = "loading"
+        await Props.onSaveTabs({
+            save_date: datetime.now(),
+            pages: Props.pages
+        })
+        State.saveTabsStatus = "success"
+        // 저장 성공 알림 표시
+        Props.onNavigatePending()
+    } catch (error) {
+        State.saveTabsStatus = "error"
+        console.error("Failed to save tabs:", error)
+    }
+}
+
 SaveTabsButton = BoxButton(
     contains: Text(i18n.save_tabs),
-    onPress: {
-        1. Convex에 현재 열려있는 탭들의 정보를 저장:
-            {
-                save_date: datetime,
-                pages: list[dict]   // input과 동일한 양식
-            }
-        2. 저장 성공 알림 표시
-        3. pending-plane으로 이동
-    }
+    onPress: () => handle_save_tabs(),
     appearance: {
         borderRadius: 4,
         bgColor: color_template.main,
@@ -56,18 +99,36 @@ suggestions_appearance = {
     textColor: color_template.font-black,
 }
 
-last_clicked = null
-if last_clicked == "search":
-    SuggestionsButton = [BoxButton(contains: Text(s), onPress: {텍스트를 ToolBar에 입력, toolbar operation 수행}, appearance: suggestions_appearance) for s in suggestions.search]
-elif last_clicked == "talk":
-    SuggestionsButton = [BoxButton(contains: Text(s), onPress: {텍스트를 ToolBar에 입력, toolbar operation 수행}, appearance: suggestions_appearance) for s in suggestions.talk]
+// Toolbar 출력에 따른 검색 처리
+last_operation = Props.toolbarOutput?.toolbar_operation || null
+if last_operation == "search":
+    State.filteredPages = Search.keyword_search(
+        query: Props.toolbarOutput.toolbar_input,
+        contents: Props.pages
+    )
+    SuggestionsButton = [BoxButton(
+        contains: Text(s), 
+        onPress: {텍스트를 ToolBar에 입력, toolbar operation 수행}, 
+        appearance: suggestions_appearance
+    ) for s in suggestions.search]
+elif last_operation == "talk":
+    // AI 대화 모드 - 향후 구현
+    State.filteredPages = Props.pages
+    SuggestionsButton = [BoxButton(
+        contains: Text(s), 
+        onPress: {텍스트를 ToolBar에 입력, toolbar operation 수행}, 
+        appearance: suggestions_appearance
+    ) for s in suggestions.talk]
 else:
+    State.filteredPages = Props.pages
     SuggestionsButton = [SaveTabsButton]
 
-
-listed_pages = [Recommended(page) for page in pages]
+// 추천 페이지 렌더링
+listed_pages = [Recommended(
+    page: page,
+    onPageClick: (url) => OpenNewTab(url)
+) for page in State.filteredPages]
 listed_pages.random_insert(Sponsor())
-
 
 RecommendedGrid = VerticalGrid(elements: [
     **SuggestionsButton,
@@ -75,12 +136,22 @@ RecommendedGrid = VerticalGrid(elements: [
     ]
 )
 
+BottomSheetComponent = BottomSheet(
+    doc_comment: Props.comments,
+    user_nickname: Props.commentAuthor.nickname,
+    epithet: Props.commentAuthor.epithet,
+    onSubmitComment: Props.onSubmitComment,
+    onExpandChange: Props.onCommentExpand
+)
+
 DynamicDisplayRatio(
     direction: "vertical",
-    elements: [RecommendedGrid, BottomSheet()],
+    elements: [RecommendedGrid, BottomSheetComponent],
     ratios: [recommended_ratio, bottom_sheet_ratio]{
         // 비율 관리 함수
-        bottom_sheet_ratio = (18*num_of_comments - 4*num_of_recommended_pages - 5)%     // 동적 사이즈 계산식
+        num_of_comments = len(Props.comments)
+        num_of_recommended_pages = len(State.filteredPages)
+        bottom_sheet_ratio = percent(18*num_of_comments - 4*num_of_recommended_pages - 5)     // 동적 사이즈 계산식
         if bottom_sheet_ratio < 15%:
             bottom_sheet_ratio = 15%
         if bottom_sheet_ratio > 60%:

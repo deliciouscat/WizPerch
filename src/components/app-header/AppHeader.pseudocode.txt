@@ -1,73 +1,120 @@
 # 기능
-북마크 관리 Chrome Extention의 AppHeader 영역. 메인 페이지 영역의 contents display를 제어한다.
+북마크 관리 Chrome Extension의 AppHeader 영역. 메인 페이지 영역의 contents display를 제어한다.
 
+# Design Pattern
+- **Store Pattern (Pinia)**: `DisplayMode` 상태를 Pinia Store로 이동하여 전역 관리.
+- **Component Composition**: ToolBar, UserProfile, Settings 조합.
+- **Mediator Pattern**: Toolbar, Account/Profile, Settings 등 헤더 내 하위 모듈의 이벤트를 수집해 상위(App)로 전달.
+
+# Input / Output
+
+## Input
+Props {
+    initialMode: "explore" | "pending" = "explore",
+    toolbarSuggestions: {
+        search: list[string],
+        talk: list[string]
+    },
+    userId: string | null,
+    userNickname: string,
+    userAvatar: string,
+    onModeChange: (mode: "explore" | "pending") => void,
+    onToolbarSubmit: (output: ToolbarOutput) => void
+}
+
+## State (Pinia Store로 관리)
+State {
+    currentMode: "explore" | "pending",
+    swapTo: "pending" | "explore",  // currentMode의 반대값
+    locale: string,
+    overlay: null | "account" | "settings"
+}
+
+## Output
+Output {
+    display_mode: {
+        currentMode: "explore" | "pending",
+        overlay: null | "account" | "settings"
+    },
+    toolbar_output: {
+        toolbar_operation: "search" | "talk",
+        toolbar_input: string,
+        suggestions_used: list[string]
+    }
+}
 
 # Pseudo code
-import ToolBar.vue      // output: {toolbar_operation: "search" or "add", toolbar_input: str}
+import ToolBar.vue      // output: {toolbar_operation: "search" or "talk", toolbar_input: str}
 import UserProfile.vue
 import Settings.vue
 import color_template.css
 import config
 import i18n
-import phospor-icons
+import phosphor-icons
+import { useAppStore } from '@/stores/app'
 
 config = ~      // 적절한 라이브러리로 관리
+appStore = useAppStore()
 
-Class DisplayMode(
-    Properties(
-        currentMode: str,
-        swapTo: str,
-        locale: str,
-        overlay: str or null
-    ),
-    Functions(
-        swap: {
-            self.currentMode -> self.swapTo ; self.swapTo -> self.currentMode   // 상호교체
-        }
-    )
-)
+// 초기화
+appStore.currentMode = Props.initialMode
+appStore.swapTo = Props.initialMode == "explore" ? "pending" : "explore"
+appStore.locale = config.locale
+appStore.overlay = null
 
-display_mode = DisplayMode(
-    currentMode: "explore", 
-    swapTo: "pending", 
-    locale: config.locale,  // with i18n
-    overlay: null
-    )
+// 모드 전환 함수
+function swap_mode() {
+    temp = appStore.currentMode
+    appStore.currentMode = appStore.swapTo
+    appStore.swapTo = temp
+    Props.onModeChange(appStore.currentMode)
+}
+
+// Toolbar 출력 핸들러
+function handle_toolbar_submit(toolbar_output) {
+    Props.onToolbarSubmit(toolbar_output)
+}
 
 VerticalGrid(
     HorizontalGrid(
         Image("src/components/assets/logo.svg"),
-        IconButton(phospor-icons.bold("user-circle")),
-        IconButton(phospor-icons.bold("gear-fine")),
+        IconButton(
+            phosphor-icons.bold("user-circle"),
+            onPress: () => account_menu_display()
+        ),
+        IconButton(
+            phosphor-icons.bold("gear-fine"),
+            onPress: () => settings_menu_display()
+        ),
         BoxButton(
-            contains: Text(display_mode.swapTo),
+            contains: Text(i18n[appStore.swapTo]),  // "탐색하기" or "보관된 탭"
             border: color_template.grey-lv2,
             rounded: 4,
-            onPress: () => display_mode.swap,
+            onPress: () => swap_mode(),
         ),
     ),
-    ToolBar(),
+    ToolBar(
+        suggestions: Props.toolbarSuggestions,
+        onSubmit: (output) => handle_toolbar_submit(output)
+    ),
     HorizontalLine(color: color_template.main, width: 4px)
 )
 
 # Display pages
 
 function account_menu_display(){
-    Render(UserProfile())
-    display_mode.overlay = "account"
+    Render(UserProfile(
+        userId: Props.userId,
+        nickname: Props.userNickname,
+        avatar: Props.userAvatar
+    ))
+    appStore.overlay = "account"
 }
 
 function settings_menu_display(){
     Render(Settings())
-    display_mode.overlay = "settings"
+    appStore.overlay = "settings"
 }
 
-
 // 화면 구현은 `explore-plane`, `pending-plane` 디렉토리에서 별도 모듈로 구현될 것임. `AppHeader`는 제어를 위한 것.
-
-# Output 양식
-// display_mode와 ToolBar의 값을 다른 컴포넌트로 전달.
-{
-    **display_mode,
-    **ToolBar().output
 }

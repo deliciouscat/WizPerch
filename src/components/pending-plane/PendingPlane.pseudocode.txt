@@ -2,10 +2,15 @@
 `보관된 탭` 페이지를 렌더링하기 위해 개별 컴포넌트들을 조합하는 페이지.
 현재 날짜를 기준으로 오늘/어제/이번 주/이번 달/이번 해/오래 전 등으로 분류하여 표시.
 
+# Design Pattern
+- **Grouper / Aggregator**: 데이터를 날짜별로 그룹화하여 표시하는 로직 포함.
+- **Container Component**: 하위 리스트 컴포넌트 관리.
+- **Sectioned List**: 날짜를 기간 단위로 그룹화하여 각 섹션을 컴포넌트로 렌더.
+- **Pure Function Helper**: `date_range`가 기간 라벨링 역할을 담당.
 
-# Pseudo code
+# Input / Output
 
-## input
+## Input
 Props {
     tabs: list[dict{
         save_date: string,
@@ -16,21 +21,39 @@ Props {
             url: string,
         }],
     }],
+    onOpenTabs: (urls: list[string]) => void,
+    onDeleteTabs: (saveDate: string) => void
 }
+
+## Output
+Output {
+    onTabsOpen: (urls: list[string]) => void,
+    onTabsDelete: (saveDate: string) => void
+}
+
+# Pseudo code
+
+import color_template.css
+import i18n
 
 ## function
 
-function date_range(date: datetime) :
+function date_range(date: datetime) -> string :
     today = datetime.now().date()
-    date_range = [
-        {date: today, name: i18n.today},
-        {date: today - 1, name: i18n.yesterday},
-        {date: today - 7, name: i18n.last_7_d},
-        {date: today - 30, name: i18n.last_30_d},
-        {date: today - 365, name: i18n.last_year},
+    date_obj = datetime.parse(date).date()
+    
+    date_ranges = [
+        {threshold: 0, name: i18n.today},
+        {threshold: 1, name: i18n.yesterday},
+        {threshold: 7, name: i18n.last_7_d},
+        {threshold: 30, name: i18n.last_30_d},
+        {threshold: 365, name: i18n.last_year},
     ]
-    for d in date_range:
-        if today <= d.date:
+    
+    days_diff = (today - date_obj).days
+    
+    for d in date_ranges:
+        if days_diff <= d.threshold:
             return d.name
     return i18n.long_ago
 
@@ -40,16 +63,21 @@ tabs_period = tabs.copy()
 tabs_period.add_item("period", map(function=date_range, input_key="save_date"))
 
 // 같은 period에 속한 탭들을 묶은 component
-def TabsPeriod(tabs_group):
+def TabsPeriod(tabs_group, onSelect):
     // tabs_group은 같은 period에 속한 탭들을 묶은 목록. 각 tabs는 각 날짜에 저장한 탭 묶음. tabs는 여러 개의 탭을 포함할 수 있음.
     return VerticalGrid(
         elements: [
             Text(tabs_group.get("period"), fontColor: color_template.grey-lv3),
             HorizontalLine(color: color_template.grey-lv3, width: 1px),
-            **[EachSavedTabList(tabs) for tabs in tabs_group.get("tabs")],  // 각 날짜에 저장한 탭 묶음을 컴포넌트로 변환
+            **[EachSavedTabList(
+                save_date: tabs.save_date,
+                tabs: tabs.pages,
+                onOpenTabs: (urls) => Props.onOpenTabs(urls),
+                onDeleteTabs: (saveDate) => Props.onDeleteTabs(saveDate)
+            ) for tabs in tabs_group.get("tabs")],  // 각 날짜에 저장한 탭 묶음을 컴포넌트로 변환
         ]
     )
 
 VerticalGrid(
-    elements: [TabsPeriod(tabs_group) for tabs_group in tabs_period]
+    elements: [TabsPeriod(tabs_group, Props.onOpenTabs) for tabs_group in tabs_period]
 )

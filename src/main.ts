@@ -1,4 +1,5 @@
 import { createApp } from "vue";
+import { createPinia } from "pinia";
 import { clerkPlugin } from "@clerk/vue";
 import { convexVue } from "convex-vue";
 import App from "./App.vue";
@@ -9,6 +10,12 @@ import "./styles/color_template.css";
  * 이 인스턴스는 플러그인으로 구성되고 DOM에 마운트됩니다.
  */
 const app = createApp(App);
+const pinia = createPinia();
+
+/**
+ * Pinia 상태 관리 플러그인을 구성합니다.
+ */
+app.use(pinia);
 
 /**
  * Clerk 인증 플러그인을 구성합니다.

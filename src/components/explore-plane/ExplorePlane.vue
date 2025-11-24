@@ -76,6 +76,7 @@ const saveTabsStatus = ref<'idle' | 'loading' | 'success' | 'error'>('idle')
 
 // Computed
 const currentSuggestions = computed(() => {
+  // toolbarOutput이 없어도 기본 제안 표시하지 않음
   if (!props.toolbarOutput) {
     return []
   }
@@ -91,7 +92,7 @@ const bottomSheetRatio = computed(() => {
   const numOfComments = props.comments.length
   const numOfRecommendedPages = filteredPages.value.length
   let ratio = 18 * numOfComments - 4 * numOfRecommendedPages - 5
-  if (ratio < 15) ratio = 15
+  if (ratio < 40) ratio = 40  // 최소 40%
   if (ratio > 60) ratio = 60
   return ratio
 })

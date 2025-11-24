@@ -13,9 +13,7 @@
       @click="handleSearchClick" 
       :class="{ active: state === 'search' }"
     >
-      <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24">
-        <path d="M784-120 532-372q-30 24-69 38t-83 14q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l252 252-56 56ZM380-400q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400Z" />
-      </svg>
+      <PhMagnifyingGlass :size="24" weight="bold" />
     </button>
 
     <!-- Blank/TextInput (search) -->
@@ -37,9 +35,7 @@
       @click="handleTalkClick" 
       :class="{ active: state === 'talk' }"
     >
-      <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24">
-        <path d="M240-400q-33 0-56.5-23.5T160-480q0-33 23.5-56.5T240-560q33 0 56.5 23.5T320-480q0 33-23.5 56.5T240-400Zm240 0q-33 0-56.5-23.5T400-480q0-33 23.5-56.5T480-560q33 0 56.5 23.5T560-480q0 33-23.5 56.5T480-400Zm240 0q-33 0-56.5-23.5T640-480q0-33 23.5-56.5T720-560q33 0 56.5 23.5T800-480q0 33-23.5 56.5T720-400ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/>
-      </svg>
+      <PhRobot :size="24" weight="bold" />
     </button>
 
     <!-- Blank/TextInput (talk) -->
@@ -59,6 +55,7 @@
 
 <script setup lang="ts">
 import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
+import { PhMagnifyingGlass, PhRobot } from '@phosphor-icons/vue'
 import type { ToolbarOutput } from '@/types'
 
 interface Props {
@@ -107,6 +104,12 @@ async function handleSearchClick() {
   }
 
   state.value = 'search'
+  // 검색 모드로 전환 시 즉시 이벤트 발생 (빈 입력으로)
+  emit('submit', {
+    toolbar_operation: 'search',
+    toolbar_input: '',
+    suggestions_used: []
+  })
   await nextTick()
   setTimeout(() => {
     searchInputRef.value?.focus()
@@ -121,6 +124,12 @@ async function handleTalkClick() {
   }
 
   state.value = 'talk'
+  // 대화 모드로 전환 시 즉시 이벤트 발생 (빈 입력으로)
+  emit('submit', {
+    toolbar_operation: 'talk',
+    toolbar_input: '',
+    suggestions_used: []
+  })
   await nextTick()
   setTimeout(() => {
     talkInputRef.value?.focus()
@@ -213,8 +222,8 @@ onUnmounted(() => {
   background-color: var(--grey-lv2);
 }
 
-.icon-button svg {
-  fill: var(--font-black);
+.icon-button :deep(svg) {
+  color: var(--font-black);
 }
 
 .text-input {

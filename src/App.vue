@@ -7,35 +7,23 @@
 
     <!-- Show app content once authentication state is determined -->
     <div v-else class="app-container">
-      <AppHeader
-        :initial-mode="appStore.currentMode"
-        :toolbar-suggestions="toolbarSuggestions"
-        :user-id="user?.id || null"
-        :user-nickname="user?.fullName || 'User'"
-        :user-avatar="user?.imageUrl || ''"
-        @mode-change="handleModeChange"
-        @toolbar-submit="handleToolbarSubmit"
-      />
+      <AppHeader :initial-mode="appStore.currentMode" :toolbar-suggestions="toolbarSuggestions"
+        :user-id="user?.id || null" :user-nickname="user?.fullName || 'User'" :user-avatar="user?.imageUrl || ''"
+        @mode-change="handleModeChange" @toolbar-submit="handleToolbarSubmit" />
 
       <main class="main-content">
-        <ExplorePlane
-          v-if="appStore.currentMode === 'explore'"
-          :pages="samplePages"
-          :comments="sampleComments"
-          :toolbar-output="appStore.toolbarOutput"
-          :comment-author="commentAuthor"
-          @save-tabs="handleSaveTabs"
-          @navigate-pending="handleNavigatePending"
-          @submit-comment="handleSubmitComment"
-          @comment-expand="handleCommentExpand"
-        />
+        <!-- Overlay가 활성화되면 UserProfile 또는 Settings 표시 -->
+        <UserProfile v-if="appStore.overlayMode === 'account'" />
+        <Settings v-else-if="appStore.overlayMode === 'settings'" />
 
-        <PendingPlane
-          v-else-if="appStore.currentMode === 'pending'"
-          :tabs="savedTabs"
-          @open-tabs="handleOpenTabs"
-          @delete-tabs="handleDeleteTabs"
-        />
+        <!-- 일반 모드 -->
+        <ExplorePlane v-else-if="appStore.currentMode === 'explore'" :pages="samplePages" :comments="sampleComments"
+          :toolbar-output="appStore.toolbarOutput" :comment-author="commentAuthor" @save-tabs="handleSaveTabs"
+          @navigate-pending="handleNavigatePending" @submit-comment="handleSubmitComment"
+          @comment-expand="handleCommentExpand" />
+
+        <PendingPlane v-else-if="appStore.currentMode === 'pending'" :tabs="savedTabs" @open-tabs="handleOpenTabs"
+          @delete-tabs="handleDeleteTabs" />
 
         <div v-else class="error-message">
           Error: Invalid mode
@@ -52,6 +40,8 @@ import { useAppStore } from '@/stores/app'
 import AppHeader from './components/app-header/AppHeader.vue'
 import ExplorePlane from './components/explore-plane/ExplorePlane.vue'
 import PendingPlane from './components/pending-plane/PendingPlane.vue'
+import UserProfile from './components/convex-provider/UserProfile.vue'
+import Settings from './components/convex-provider/Settings.vue'
 import LoadingSpinner from './components/convex-provider/LoadingSpinner.vue'
 import type { PageData, CommentData, SavedTabGroup, ToolbarOutput } from '@/types'
 import querySuggestions from './components/explore-plane/query_suggestions.json'
@@ -163,7 +153,8 @@ onMounted(() => {
 .main-content {
   flex: 1;
   overflow: hidden;
-  min-height: 0; /* flexbox에서 스크롤을 위해 필요 */
+  min-height: 0;
+  /* flexbox에서 스크롤을 위해 필요 */
   background-color: var(--background);
 }
 

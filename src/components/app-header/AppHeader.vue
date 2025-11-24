@@ -6,7 +6,7 @@
         <PhUserCircle :size="24" weight="bold" />
       </button>
       <button class="icon-button" @click="settingsMenuDisplay">
-        <PhGearSix :size="24" weight="bold" />
+        <PhGearFine :size="24" weight="bold" />
       </button>
       <button class="mode-button" @click="swapMode">
         {{ swapToText }}
@@ -20,7 +20,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { PhUserCircle, PhGearSix } from '@phosphor-icons/vue'
+import { PhUserCircle, PhGearFine } from '@phosphor-icons/vue'
 import { useAppStore } from '@/stores/app'
 import ToolBar from './ToolBar.vue'
 import type { ToolbarOutput } from '@/types'
@@ -87,7 +87,8 @@ function closeOverlay() {
   display: flex;
   flex-direction: column;
   background-color: var(--background);
-  flex-shrink: 0; /* 헤더는 축소되지 않음 */
+  flex-shrink: 0;
+  /* 헤더는 축소되지 않음 */
 }
 
 .header-top {
@@ -144,6 +145,4 @@ function closeOverlay() {
   background-color: var(--main);
   width: 100%;
 }
-
 </style>
-

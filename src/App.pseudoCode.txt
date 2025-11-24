@@ -40,7 +40,7 @@ Output {
 
 # Pseudo-code
 import { useAppStore } from '@/stores/app'
-from components import app-header, explore-plane, pending-plane
+from components import app-header, explore-plane, pending-plane, user-profile, settings
 
 // Pinia Store 초기화
 appStore = useAppStore()
@@ -53,8 +53,12 @@ headerOutput = {
     toolbar_output: appStore.toolbarOutput
 }
 
-// 메인 디스플레이 결정
-if appStore.currentMode == "explore":
+// 메인 디스플레이 결정 (overlayMode가 우선순위)
+if appStore.overlayMode == "account":
+    main_display = user-profile()  // UserProfile 전체 화면 표시
+elif appStore.overlayMode == "settings":
+    main_display = settings()  // Settings 전체 화면 표시
+elif appStore.currentMode == "explore":
     main_display = explore-plane(
         toolbarOutput: headerOutput.toolbar_output,
         onNavigatePending: () => appStore.currentMode = "pending"

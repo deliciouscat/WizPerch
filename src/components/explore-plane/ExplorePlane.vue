@@ -2,45 +2,25 @@
   <div class="explore-plane">
     <div class="recommended-section" :style="{ height: `${recommendedRatio}%` }">
       <div class="suggestions">
-        <button
-          v-for="suggestion in currentSuggestions"
-          :key="suggestion"
-          class="suggestion-button"
-          @click="handleSuggestionClick(suggestion)"
-        >
+        <button v-for="suggestion in currentSuggestions" :key="suggestion" class="suggestion-button"
+          @click="handleSuggestionClick(suggestion)">
           {{ suggestion }}
         </button>
-        <button
-          v-if="!toolbarOutput"
-          class="save-tabs-button"
-          @click="handleSaveTabs"
-          :disabled="saveTabsStatus === 'loading'"
-        >
+        <button v-if="!toolbarOutput" class="save-tabs-button" @click="handleSaveTabs"
+          :disabled="saveTabsStatus === 'loading'">
           {{ saveTabsStatus === 'loading' ? '저장 중...' : '탭 저장하기' }}
         </button>
       </div>
       <div class="recommended-list">
-        <Recommended
-          v-for="(page, index) in filteredPages"
-          :key="page.url"
-          :title="page.title"
-          :description="page.description"
-          :favicon="page.favicon"
-          :url="page.url"
-          :keyword="page.keyword"
-          @page-click="handlePageClick"
-        />
+        <Recommended v-for="(page, index) in filteredPages" :key="page.url" :title="page.title"
+          :description="page.description" :favicon="page.favicon" :url="page.url" :keyword="page.keyword"
+          @page-click="handlePageClick" />
         <Sponsor />
       </div>
     </div>
     <div class="bottom-sheet-section" :style="{ height: `${bottomSheetRatio}%` }">
-      <BottomSheet
-        :docComment="comments"
-        :userNickname="commentAuthor.nickname"
-        :epithet="commentAuthor.epithet"
-        @submitComment="handleSubmitComment"
-        @expandChange="handleCommentExpand"
-      />
+      <BottomSheet :docComment="comments" :userNickname="commentAuthor.nickname" :epithet="commentAuthor.epithet"
+        @submitComment="handleSubmitComment" @expandChange="handleCommentExpand" />
     </div>
   </div>
 </template>
@@ -188,7 +168,8 @@ function handleCommentExpand(commentId: string | null) {
   overflow-y: auto;
   padding: 16px;
   background-color: var(--background);
-  min-height: 0; /* flexbox에서 스크롤을 위해 필요 */
+  min-height: 0;
+  /* flexbox에서 스크롤을 위해 필요 */
 }
 
 .suggestions {
@@ -243,8 +224,8 @@ function handleCommentExpand(commentId: string | null) {
   min-height: 15%;
   max-height: 60%;
   overflow: hidden;
-  flex-shrink: 0; /* 축소 방지 */
+  flex-shrink: 0;
+  /* 축소 방지 */
   background-color: var(--background);
 }
 </style>
-

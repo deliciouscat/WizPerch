@@ -102,10 +102,16 @@ suggestions_appearance = {
 // Toolbar 출력에 따른 검색 처리
 last_operation = Props.toolbarOutput?.toolbar_operation || null
 if last_operation == "search":
-    State.filteredPages = Search.keyword_search(
-        query: Props.toolbarOutput.toolbar_input,
-        contents: Props.pages
-    )
+    // 검색어가 있으면 필터링, 없으면 전체 표시 (빈 입력으로 추천 쿼리만 표시)
+    if Props.toolbarOutput.toolbar_input:
+        State.filteredPages = Search.keyword_search(
+            query: Props.toolbarOutput.toolbar_input,
+            contents: Props.pages
+        )
+    else:
+        State.filteredPages = Props.pages
+    
+    // 검색 모드에서는 항상 추천 쿼리 표시
     SuggestionsButton = [BoxButton(
         contains: Text(s), 
         onPress: {텍스트를 ToolBar에 입력, toolbar operation 수행}, 
@@ -114,6 +120,8 @@ if last_operation == "search":
 elif last_operation == "talk":
     // AI 대화 모드 - 향후 구현
     State.filteredPages = Props.pages
+    
+    // 대화 모드에서는 항상 추천 쿼리 표시
     SuggestionsButton = [BoxButton(
         contains: Text(s), 
         onPress: {텍스트를 ToolBar에 입력, toolbar operation 수행}, 
@@ -152,8 +160,8 @@ DynamicDisplayRatio(
         num_of_comments = len(Props.comments)
         num_of_recommended_pages = len(State.filteredPages)
         bottom_sheet_ratio = percent(18*num_of_comments - 4*num_of_recommended_pages - 5)     // 동적 사이즈 계산식
-        if bottom_sheet_ratio < 15%:
-            bottom_sheet_ratio = 15%
+        if bottom_sheet_ratio < 40%:
+            bottom_sheet_ratio = 40%  // 최소 40%로 변경
         if bottom_sheet_ratio > 60%:
             bottom_sheet_ratio = 60%
         recommended_ratio = 1 - bottom_sheet_ratio

@@ -33,7 +33,7 @@ Output {
 
 # Pseudo Code
 
-import phosphor-icons
+import { PhMagnifyingGlass, PhRobot } from '@phosphor-icons/vue'
 
 Interface BoxSizingSystem(
     Properties(
@@ -70,17 +70,25 @@ Class ToolbarOrder (
 
 appHeaderArea = `앱 헤더 영역 (바깥 클릭 확인하기 위해)`    // Toolbar ⊃ AppHeader ⊃ 전체요소(bottom-sheet, collections 포함)인데, Toolbar를 제외한 AppHeader 영역을 클릭했을 때의 action을 정의하기 위함.
 
-search_button = IconButton(phosphor-icons.bold("magnifying-glass"))
-talk_button = IconButton(phosphor-icons.bold("robot"))
+search_button = IconButton(PhMagnifyingGlass(size: 24, weight: "bold"))
+talk_button = IconButton(PhRobot(size: 24, weight: "bold"))
 tb_order = ToolbarOrder(
     placement: [Blank(size: 1, areaFor: "default"), search_button, Blank(size: 0, areaFor: "search"), talk_button, Blank(size: 0, areaFor: "talk")]  // default
     state: "default"
 )
 toolbar = dynamic HorizontalGrid(tb_order)
 
-// 버튼 클릭 핸들러
+// 버튼 클릭 핸들러 (즉시 추천 쿼리 표시를 위해 빈 입력으로 이벤트 발생)
 function handle_button_click(button_type: "search" | "talk") {
     State.currentState = button_type
+    
+    // 즉시 빈 입력으로 이벤트 발생 (추천 쿼리 표시용)
+    Props.onSubmit({
+        toolbar_operation: button_type,
+        toolbar_input: "",
+        suggestions_used: []
+    })
+    
     Animate(tb_order, button_type)
     sleep(0.1 seconds)
     구현: `~.areaFor==button_type`인 Blank를 TextInputBox로 swap

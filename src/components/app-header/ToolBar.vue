@@ -1,54 +1,28 @@
 <template>
   <div class="toolbar" ref="toolbarRef">
     <!-- Blank (default) -->
-    <div 
-      class="toolbar-item blank" 
-      :style="{ flex: placementSizes[0] }" 
-      @click="handleBlankClick"
-    ></div>
+    <div class="toolbar-item blank" :style="{ flex: placementSizes[0] }" @click="handleBlankClick"></div>
 
     <!-- Search Button -->
-    <button 
-      class="toolbar-item icon-button" 
-      @click="handleSearchClick" 
-      :class="{ active: state === 'search' }"
-    >
+    <button class="toolbar-item icon-button" @click="handleSearchClick" :class="{ active: state === 'search' }">
       <PhMagnifyingGlass :size="24" weight="bold" />
     </button>
 
     <!-- Blank/TextInput (search) -->
     <div class="toolbar-item" :style="{ flex: placementSizes[2] }">
-      <input 
-        v-if="state === 'search' && placementSizes[2] === 1" 
-        ref="searchInputRef" 
-        type="text" 
-        v-model="inputValue"
-        @keyup.enter="handleSubmit" 
-        placeholder="검색을 입력하세요..." 
-        class="text-input" 
-      />
+      <input v-if="state === 'search' && placementSizes[2] === 1" ref="searchInputRef" type="text" v-model="inputValue"
+        @keyup.enter="handleSubmit" placeholder="검색을 입력하세요..." class="text-input" />
     </div>
 
     <!-- Talk Button -->
-    <button 
-      class="toolbar-item icon-button" 
-      @click="handleTalkClick" 
-      :class="{ active: state === 'talk' }"
-    >
+    <button class="toolbar-item icon-button" @click="handleTalkClick" :class="{ active: state === 'talk' }">
       <PhRobot :size="24" weight="bold" />
     </button>
 
     <!-- Blank/TextInput (talk) -->
     <div class="toolbar-item" :style="{ flex: placementSizes[4] }">
-      <input 
-        v-if="state === 'talk' && placementSizes[4] === 1" 
-        ref="talkInputRef" 
-        type="text" 
-        v-model="inputValue"
-        @keyup.enter="handleSubmit" 
-        placeholder="AI와 대화하기..." 
-        class="text-input" 
-      />
+      <input v-if="state === 'talk' && placementSizes[4] === 1" ref="talkInputRef" type="text" v-model="inputValue"
+        @keyup.enter="handleSubmit" placeholder="AI와 대화하기..." class="text-input" />
     </div>
   </div>
 </template>

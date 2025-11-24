@@ -45,12 +45,10 @@ Output {
 
 # Pseudo code
 import ToolBar.vue      // output: {toolbar_operation: "search" or "talk", toolbar_input: str}
-import UserProfile.vue
-import Settings.vue
 import color_template.css
 import config
 import i18n
-import phosphor-icons
+import { PhUserCircle, PhGearFine } from '@phosphor-icons/vue'
 import { useAppStore } from '@/stores/app'
 
 config = ~      // 적절한 라이브러리로 관리
@@ -77,13 +75,13 @@ function handle_toolbar_submit(toolbar_output) {
 
 VerticalGrid(
     HorizontalGrid(
-        Image("src/components/assets/logo.svg"),
+        Image("@/components/assets/logo.svg"),  // 실제 로고 이미지 사용
         IconButton(
-            phosphor-icons.bold("user-circle"),
+            PhUserCircle(size: 24, weight: "bold"),
             onPress: () => account_menu_display()
         ),
         IconButton(
-            phosphor-icons.bold("gear-fine"),
+            PhGearFine(size: 24, weight: "bold"),
             onPress: () => settings_menu_display()
         ),
         BoxButton(
@@ -103,18 +101,15 @@ VerticalGrid(
 # Display pages
 
 function account_menu_display(){
-    Render(UserProfile(
-        userId: Props.userId,
-        nickname: Props.userNickname,
-        avatar: Props.userAvatar
-    ))
-    appStore.overlay = "account"
+    // UserProfile은 App.vue의 main-content 영역에 전체 화면으로 표시됨
+    appStore.overlayMode = "account"
 }
 
 function settings_menu_display(){
-    Render(Settings())
-    appStore.overlay = "settings"
+    // Settings는 App.vue의 main-content 영역에 전체 화면으로 표시됨
+    appStore.overlayMode = "settings"
 }
 
 // 화면 구현은 `explore-plane`, `pending-plane` 디렉토리에서 별도 모듈로 구현될 것임. `AppHeader`는 제어를 위한 것.
+// UserProfile과 Settings는 App.vue에서 직접 렌더링됨 (오버레이가 아닌 main display 영역에)
 }

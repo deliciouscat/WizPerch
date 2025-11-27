@@ -1,5 +1,8 @@
 <template>
-  <div v-if="isLoading" class="profile-loading">
+  <!-- 닉네임 설정이 필요한 경우 -->
+  <NicknameSetup v-if="needsNicknameSetup" @complete="handleNicknameComplete" />
+
+  <div v-else-if="isLoading" class="profile-loading">
     <LoadingSpinner size="medium" text="Loading profile..." />
   </div>
 
@@ -9,12 +12,41 @@
   </div>
 
   <div v-else-if="currentUser" class="profile-content">
-    <h2>Welcome, {{ currentUser.name }}!</h2>
-    <p>{{ currentUser.email }}</p>
+    <div class="profile-nav">
+      <button @click="goBack" class="back-button">
+        <PhArrowLeft :size="20" weight="bold" />
+        <span>뒤로가기</span>
+      </button>
+    </div>
+
+    <div class="profile-header">
+      <div class="avatar-placeholder">
+        {{ getInitials(currentUser.name) }}
+      </div>
+      <h2>{{ currentUser.name }}</h2>
+      <p class="email">{{ currentUser.email }}</p>
+    </div>
+
+    <div class="profile-stats">
+      <div class="stat-item">
+        <span class="stat-label">가입일</span>
+        <span class="stat-value">{{ formatDate(currentUser.createdAt) }}</span>
+      </div>
+    </div>
+
+    <div class="profile-actions">
+      <SignOutButton>
+        <template #default="{ signOut }">
+          <button @click="signOut" class="signout-button">
+            로그아웃
+          </button>
+        </template>
+      </SignOutButton>
+    </div>
   </div>
 
   <div v-else class="profile-empty">
-    <p>No profile data found.</p>
+    <p>프로필 정보를 불러올 수 없습니다.</p>
   </div>
 </template>
 
@@ -39,8 +71,12 @@
 
 import { useConvexQuery, useConvexMutation } from "convex-vue";
 import { api } from "../../../convex/_generated/api";
-import { onMounted, computed } from "vue";
+import { onMounted, computed, ref } from "vue";
+import { SignOutButton } from "@clerk/vue";
+import { PhArrowLeft } from "@phosphor-icons/vue";
+import { useAppStore } from "@/stores/app";
 import LoadingSpinner from "./LoadingSpinner.vue";
+import NicknameSetup from "./NicknameSetup.vue";
 
 /**
  * 사용자 데이터를 생성하거나 업데이트하기 위한 Convex mutation 훅.
@@ -71,6 +107,8 @@ const {
   suspense,
 } = useConvexQuery(api.users.getCurrentUser, {});
 
+const appStore = useAppStore();
+
 /**
  * 컴포넌트가 로딩 상태인지 여부를 결정하는 계산된 속성.
  *
@@ -78,6 +116,53 @@ const {
  * 프로필 콘텐츠를 렌더링하는 것을 방지합니다.
  */
 const isLoading = computed(() => isFetchingUser.value || isCreatingUser.value);
+
+/**
+ * 닉네임 설정이 필요한지 확인하는 계산된 속성.
+ * 사용자가 존재하지만 이름이 없거나 비어있으면 true를 반환합니다.
+ */
+const needsNicknameSetup = computed(() => {
+  if (isLoading.value || error.value) return false;
+  if (!currentUser.value) return false;
+  return !currentUser.value.name || currentUser.value.name.trim() === '';
+});
+
+/**
+ * 날짜를 포맷하는 함수
+ */
+function formatDate(timestamp: number): string {
+  return new Date(timestamp).toLocaleDateString('ko-KR', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+}
+
+/**
+ * 닉네임 설정 완료 핸들러
+ */
+function handleNicknameComplete() {
+  // 닉네임 설정이 완료되면 자동으로 쿼리가 재실행되어 업데이트된 사용자 정보를 가져옵니다.
+}
+
+/**
+ * 이름에서 이니셜을 추출하는 함수
+ */
+function getInitials(name: string | undefined): string {
+  if (!name) return '?';
+  const parts = name.trim().split(' ');
+  if (parts.length === 1) {
+    return parts[0].charAt(0).toUpperCase();
+  }
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+}
+
+/**
+ * 뒤로가기 함수
+ */
+function goBack() {
+  appStore.setOverlayMode(null);
+}
 
 /**
  * 오류 발생 시 사용자 데이터를 다시 로드하기 위한 재시도 함수.
@@ -197,17 +282,121 @@ onMounted(async () => {
  * 사용자 프로필 데이터를 위한 깔끔하고 읽기 쉬운 레이아웃을 제공합니다.
  */
 .profile-content {
-  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+  background-color: var(--background);
+}
+
+.profile-nav {
+  padding: 16px 20px;
+  border-bottom: 2px solid var(--grey-lv2);
+}
+
+.back-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 2px solid var(--grey-lv2);
+  border-radius: 0;
+  background-color: var(--background);
+  color: var(--font-black);
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.back-button:hover {
+  background-color: var(--grey-lv1);
+}
+
+.back-button svg {
+  fill: var(--font-black);
+}
+
+.profile-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 20px 20px;
   text-align: center;
 }
 
-.profile-content h2 {
-  color: #212529;
-  margin-bottom: 8px;
+.avatar-placeholder {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background-color: var(--main);
+  color: var(--background);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: bold;
+  margin-bottom: 16px;
 }
 
-.profile-content p {
-  color: #6c757d;
+.profile-header h2 {
+  color: var(--font-black);
+  margin: 0 0 8px 0;
+  font-size: 24px;
+}
+
+.profile-header .email {
+  color: var(--grey-lv3);
   margin: 0;
+  font-size: 14px;
+}
+
+.profile-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 24px 20px;
+  padding: 20px;
+  border: 2px solid var(--grey-lv2);
+  border-radius: 0;
+}
+
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.stat-label {
+  color: var(--grey-lv3);
+  font-size: 14px;
+}
+
+.stat-value {
+  color: var(--font-black);
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.profile-actions {
+  margin: auto 20px 20px;
+  padding-top: 20px;
+}
+
+.signout-button {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid var(--notification);
+  border-radius: 0;
+  background-color: var(--background);
+  color: var(--notification);
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.signout-button:hover {
+  background-color: var(--notification);
+  color: var(--background);
 }
 </style>

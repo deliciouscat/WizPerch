@@ -1,10 +1,54 @@
 {
-  "save_tabs": "탭 저장하기",
-  "today": "오늘",
-  "yesterday": "어제",
-  "last_7_d": "지난 7일",
-  "last_30_d": "지난 30일",
-  "last_year": "지난 해",
-  "long_ago": "오래 전"
+  "app": {
+    "name": "WizPerch"
+  },
+  "header": {
+    "explore_mode": "탐색하기",
+    "pending_mode": "보관된 탭"
+  },
+  "toolbar": {
+    "search_placeholder": "검색어를 입력하세요...",
+    "talk_placeholder": "AI와 대화하기..."
+  },
+  "profile": {
+    "welcome": "환영합니다, {name}님!",
+    "loading": "프로필 로딩 중...",
+    "error": "프로필 로딩 오류: {error}",
+    "retry": "다시 시도",
+    "no_data": "프로필 정보를 불러올 수 없습니다.",
+    "joined_date": "가입일"
+  },
+  "nickname_setup": {
+    "welcome": "환영합니다!",
+    "prompt": "사용하실 닉네임을 입력해주세요.",
+    "placeholder": "닉네임 (2-20자)",
+    "submit": "시작하기",
+    "error": "닉네임 설정에 실패했습니다. 다시 시도해주세요."
+  },
+  "comments": {
+    "write_placeholder": "코멘트를 입력하세요.",
+    "no_more": "더 이상 댓글이 없습니다.",
+    "empty": "첫 댓글을 작성해보세요!",
+    "loading": "댓글 로딩 중..."
+  },
+  "pending": {
+    "save_tabs": "탭 저장하기",
+    "no_saved_tabs": "저장된 탭이 없습니다."
+  },
+  "date": {
+    "today": "오늘",
+    "yesterday": "어제",
+    "last_7_d": "지난 7일",
+    "last_30_d": "지난 30일",
+    "last_year": "지난 해",
+    "long_ago": "오래 전"
+  },
+  "common": {
+    "loading": "로딩 중...",
+    "error": "오류",
+    "submit": "제출",
+    "cancel": "취소",
+    "back": "뒤로가기"
+  }
 }
 

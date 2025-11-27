@@ -56,10 +56,10 @@ const convex = useConvexClient();
 provide("convex", convex);
 
 /**
- * 데이터베이스에서 사용자 데이터를 업데이트하기 위한 Convex mutation 훅.
- * 이 mutation은 Clerk에서 Convex로 사용자 프로필 변경 사항을 동기화하는 데 사용됩니다.
+ * 데이터베이스에서 사용자를 생성하거나 가져오기 위한 Convex mutation 훅.
+ * 이 mutation은 Clerk 인증 후 Convex에 사용자 레코드를 생성하는 데 사용됩니다.
  */
-const { mutate: updateUserData } = useConvexMutation(api.users.updateUserData);
+const { mutate: getOrCreateUser } = useConvexMutation(api.users.getOrCreateUser);
 
 /**
  * Clerk 인증이 변경될 때 Convex 인증을 업데이트하고 사용자 데이터를 동기화합니다.
@@ -94,12 +94,13 @@ const updateAuth = async () => {
       convex.setAuth(async () => token);
 
       // 사용자가 변경될 때마다 사용자 데이터를 Convex에 동기화
+      // 먼저 사용자가 존재하는지 확인하고, 없으면 생성
       if (user.value) {
-        await updateUserData({
-          clerkId: user.value.id,
-          email: user.value.primaryEmailAddress?.emailAddress || "",
-          name: `${user.value.firstName || ""} ${user.value.lastName || ""}`.trim(),
-        });
+        try {
+          await getOrCreateUser({});
+        } catch (error) {
+          console.error("Error creating user:", error);
+        }
       }
     } catch (error) {
       console.error("Error setting up Convex authentication:", error);

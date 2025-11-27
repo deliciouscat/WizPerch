@@ -1,1 +1,53 @@
-
+{
+  "app": {
+    "name": "WizPerch"
+  },
+  "header": {
+    "explore_mode": "Explore",
+    "pending_mode": "Saved Tabs"
+  },
+  "toolbar": {
+    "search_placeholder": "Enter search query...",
+    "talk_placeholder": "Talk with AI..."
+  },
+  "profile": {
+    "welcome": "Welcome, {name}!",
+    "loading": "Loading profile...",
+    "error": "Error loading profile: {error}",
+    "retry": "Retry",
+    "no_data": "No profile data found.",
+    "joined_date": "Joined"
+  },
+  "nickname_setup": {
+    "welcome": "Welcome!",
+    "prompt": "Please enter your nickname.",
+    "placeholder": "Nickname (2-20 characters)",
+    "submit": "Get Started",
+    "error": "Failed to set nickname. Please try again."
+  },
+  "comments": {
+    "write_placeholder": "Write a comment...",
+    "no_more": "No more comments.",
+    "empty": "Be the first to comment!",
+    "loading": "Loading comments..."
+  },
+  "pending": {
+    "save_tabs": "Save Tabs",
+    "no_saved_tabs": "No saved tabs."
+  },
+  "date": {
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "last_7_d": "Last 7 days",
+    "last_30_d": "Last 30 days",
+    "last_year": "Last year",
+    "long_ago": "Long ago"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "submit": "Submit",
+    "cancel": "Cancel",
+    "back": "Back"
+  }
+}

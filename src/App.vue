@@ -6,30 +6,32 @@
     </div>
 
     <!-- Show app content once authentication state is determined -->
-    <div v-else class="app-container">
-      <AppHeader :initial-mode="appStore.currentMode" :toolbar-suggestions="toolbarSuggestions"
-        :user-id="user?.id || null" :user-nickname="user?.fullName || 'User'" :user-avatar="user?.imageUrl || ''"
-        @mode-change="handleModeChange" @toolbar-submit="handleToolbarSubmit" />
+    <ConvexProvider v-else>
+      <div class="app-container">
+        <AppHeader :initial-mode="appStore.currentMode" :toolbar-suggestions="toolbarSuggestions"
+          :user-id="user?.id || null" :user-nickname="user?.fullName || 'User'" :user-avatar="user?.imageUrl || ''"
+          @mode-change="handleModeChange" @toolbar-submit="handleToolbarSubmit" />
 
-      <main class="main-content">
-        <!-- Overlay가 활성화되면 UserProfile 또는 Settings 표시 -->
-        <UserProfile v-if="appStore.overlayMode === 'account'" />
-        <Settings v-else-if="appStore.overlayMode === 'settings'" />
+        <main class="main-content">
+          <!-- Overlay가 활성화되면 UserProfile 또는 Settings 표시 -->
+          <UserProfile v-if="appStore.overlayMode === 'account'" />
+          <Settings v-else-if="appStore.overlayMode === 'settings'" />
 
-        <!-- 일반 모드 -->
-        <ExplorePlane v-else-if="appStore.currentMode === 'explore'" :pages="samplePages" :comments="sampleComments"
-          :toolbar-output="appStore.toolbarOutput" :comment-author="commentAuthor" @save-tabs="handleSaveTabs"
-          @navigate-pending="handleNavigatePending" @submit-comment="handleSubmitComment"
-          @comment-expand="handleCommentExpand" />
+          <!-- 일반 모드 -->
+          <ExplorePlane v-else-if="appStore.currentMode === 'explore'" :pages="samplePages" :comments="sampleComments"
+            :toolbar-output="appStore.toolbarOutput" :comment-author="commentAuthor" @save-tabs="handleSaveTabs"
+            @navigate-pending="handleNavigatePending" @submit-comment="handleSubmitComment"
+            @comment-expand="handleCommentExpand" />
 
-        <PendingPlane v-else-if="appStore.currentMode === 'pending'" :tabs="savedTabs" @open-tabs="handleOpenTabs"
-          @delete-tabs="handleDeleteTabs" />
+          <PendingPlane v-else-if="appStore.currentMode === 'pending'" :tabs="savedTabs" @open-tabs="handleOpenTabs"
+            @delete-tabs="handleDeleteTabs" />
 
-        <div v-else class="error-message">
-          Error: Invalid mode
-        </div>
-      </main>
-    </div>
+          <div v-else class="error-message">
+            Error: Invalid mode
+          </div>
+        </main>
+      </div>
+    </ConvexProvider>
   </div>
 </template>
 
@@ -37,6 +39,7 @@
 import { ref, onMounted } from 'vue'
 import { useUser } from '@clerk/vue'
 import { useAppStore } from '@/stores/app'
+import ConvexProvider from './components/convex-provider/ConvexProvider.vue'
 import AppHeader from './components/app-header/AppHeader.vue'
 import ExplorePlane from './components/explore-plane/ExplorePlane.vue'
 import PendingPlane from './components/pending-plane/PendingPlane.vue'

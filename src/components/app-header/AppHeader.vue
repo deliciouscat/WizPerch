@@ -1,7 +1,10 @@
 <template>
   <div class="app-header">
     <div class="header-top">
+      <!-- 로고 -->
       <img src="@/components/assets/logo.svg" alt="WizPerch Logo" class="logo" />
+
+      <!-- 버튼들 (항상 표시) -->
       <button class="icon-button" @click="accountMenuDisplay">
         <PhUserCircle :size="24" weight="bold" />
       </button>
@@ -75,10 +78,6 @@ function accountMenuDisplay() {
 
 function settingsMenuDisplay() {
   appStore.setOverlayMode('settings')
-}
-
-function closeOverlay() {
-  appStore.setOverlayMode(null)
 }
 </script>
 

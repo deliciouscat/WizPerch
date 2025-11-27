@@ -26,35 +26,57 @@
         </button>
       </div>
     </div>
-    <div v-else class="comment-box" :style="{ maxHeight: commentBoxHeight }">
-      <CommentBox
-        v-for="comment in props.docComment"
-        :key="comment.commentId"
-        :nametag="comment.nametag"
-        :content="comment.content"
-        :commentId="comment.commentId"
-        :isExpanded="expandedCommentId === comment.commentId"
-        @expand="handleCommentExpand"
-      />
+    <div v-else class="comment-box" ref="commentBoxRef" @scroll="handleScroll">
+      <!-- 초기 로딩 중 -->
+      <div v-if="isLoadingComments && comments.length === 0" class="loading-indicator">
+        <div class="spinner"></div>
+      </div>
+      
+      <!-- 댓글 목록 -->
+      <template v-else>
+        <CommentBox
+          v-for="comment in comments"
+          :key="comment._id"
+          :nametag="comment.userName"
+          :content="comment.content"
+          :commentId="comment._id"
+          :isExpanded="expandedCommentId === comment._id"
+          @expand="handleCommentExpand"
+        />
+        
+        <!-- 더 로드 중 (무한 스크롤) -->
+        <div v-if="hasMore && isLoadingComments" class="load-more-indicator">
+          <div class="spinner"></div>
+        </div>
+        
+        <!-- 모든 댓글 로드 완료 -->
+        <div v-if="!hasMore && comments.length > 0" class="end-indicator">
+          더 이상 댓글이 없습니다.
+        </div>
+        
+        <!-- 댓글이 하나도 없을 때 -->
+        <div v-if="comments.length === 0" class="empty-indicator">
+          첫 댓글을 작성해보세요!
+        </div>
+      </template>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
+import { useConvexQuery, useConvexMutation } from 'convex-vue'
+import { api } from '../../../../convex/_generated/api'
 import CommentBox from './CommentBox.vue'
-import type { CommentData } from '@/types'
+import type { Id } from '../../../../convex/_generated/dataModel'
 
 interface Props {
-  docComment: CommentData[]
+  pageId: Id<'pages'>
   userNickname: string
   epithet: string
-  onSubmitComment: (content: string) => Promise<void>
-  onExpandChange: (commentId: string | null) => void
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  docComment: () => [],
   userNickname: 'User',
   epithet: 'Guest'
 })
@@ -63,17 +85,31 @@ const props = withDefaults(defineProps<Props>(), {
 const expandedCommentId = ref<string | null>(null)
 const isWriting = ref(false)
 const commentInput = ref('')
+const commentBoxRef = ref<HTMLElement | null>(null)
+
+// Convex 쿼리 - 무한 스크롤
+const numItems = ref(20)
+const {
+  data: commentsData,
+  isPending: isLoadingComments,
+} = useConvexQuery(
+  api.comments.getCommentsByPage,
+  computed(() => ({
+    pageId: props.pageId,
+    paginationOpts: { numItems: numItems.value, cursor: null },
+  }))
+)
+
+const comments = computed(() => commentsData.value?.page || [])
+const hasMore = computed(() => commentsData.value?.continueCursor !== null)
+
+// Convex mutation - 댓글 생성
+const { mutate: createComment, isPending: isSubmitting } = useConvexMutation(
+  api.comments.createComment
+)
 
 const nametagDisplay = computed(() => {
   return `${props.userNickname} • ${props.epithet}`
-})
-
-const commentBoxHeight = computed(() => {
-  const commentLength = props.docComment?.length || 0
-  const dynamicHeight = 24 + 64 * commentLength
-  const calculatedHeight = Math.max(200, dynamicHeight)
-  const maxHeight = window.innerHeight * 0.75
-  return `${Math.min(calculatedHeight, maxHeight)}px`
 })
 
 function handleCommentExpand(commentId: string) {
@@ -82,12 +118,10 @@ function handleCommentExpand(commentId: string) {
   } else {
     expandedCommentId.value = commentId
   }
-  props.onExpandChange(expandedCommentId.value)
 }
 
 function handleOutsideClick() {
   expandedCommentId.value = null
-  props.onExpandChange(null)
 }
 
 function startWriting() {
@@ -95,14 +129,30 @@ function startWriting() {
 }
 
 async function handleCommentSubmit() {
-  if (commentInput.value.trim()) {
+  if (commentInput.value.trim() && !isSubmitting.value) {
     try {
-      await props.onSubmitComment(commentInput.value)
+      await createComment({
+        pageId: props.pageId,
+        content: commentInput.value,
+      })
       commentInput.value = ''
       isWriting.value = false
     } catch (error) {
       console.error('Failed to submit comment:', error)
     }
+  }
+}
+
+// 무한 스크롤 핸들러
+function handleScroll() {
+  if (!commentBoxRef.value || !hasMore.value || isLoadingComments.value) return
+
+  const { scrollTop, scrollHeight, clientHeight } = commentBoxRef.value
+  const scrollPercentage = (scrollTop + clientHeight) / scrollHeight
+
+  // 80% 스크롤 시 더 로드
+  if (scrollPercentage > 0.8) {
+    numItems.value += 20
   }
 }
 </script>
@@ -170,6 +220,7 @@ async function handleCommentSubmit() {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  max-height: calc(100vh * 0.75);
 }
 
 .comment-write-box {
@@ -219,6 +270,36 @@ async function handleCommentSubmit() {
 .submit-button svg {
   fill: var(--background);
   transform: rotate(-45deg);
+}
+
+.loading-indicator,
+.load-more-indicator {
+  display: flex;
+  justify-content: center;
+  padding: 16px;
+}
+
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--grey-lv2);
+  border-top-color: var(--main);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.end-indicator,
+.empty-indicator {
+  text-align: center;
+  padding: 16px;
+  color: var(--grey-lv3);
+  font-size: 14px;
 }
 </style>
 

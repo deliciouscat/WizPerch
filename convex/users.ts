@@ -83,29 +83,24 @@ export const getOrCreateUser = mutation({
     });
 
     /**
-     * 사용자 프로필 데이터를 업데이트하거나 사용자가 존재하지 않으면 새 사용자를 생성합니다.
+     * 사용자 프로필 데이터를 업데이트합니다.
      *
-     * 이 mutation 함수는 사용자 데이터에 대한 upsert 작업을 제공합니다.
-     * 입력 매개변수를 검증하고, 인증된 사용자가 자신의 데이터만 업데이트할 수 있도록 보장하며,
-     * 기존 사용자 레코드를 업데이트하거나 새 레코드를 생성합니다.
+     * 이 mutation 함수는 사용자 데이터를 업데이트합니다.
+     * 인증된 사용자가 자신의 데이터만 업데이트할 수 있도록 보장합니다.
      *
      * @param ctx - 인증 및 데이터베이스 액세스를 포함하는 Convex 컨텍스트
      * @param args - 업데이트할 사용자 데이터를 포함하는 객체
-     * @param args.clerkId - Clerk 사용자 ID (인증된 사용자와 일치해야 함)
-     * @param args.email - 사용자의 이메일 주소
-     * @param args.name - 사용자의 표시 이름
-     * @returns Promise<string> - 업데이트/생성된 사용자의 사용자 ID
+     * @param args.name - 사용자의 표시 이름 (선택적)
+     * @param args.email - 사용자의 이메일 주소 (선택적)
+     * @returns Promise<Id<"users">> - 업데이트된 사용자의 ID
      *
-     * @throws {Error} 필수 필드가 누락된 경우
-     * @throws {Error} 이메일 형식이 잘못된 경우
      * @throws {Error} 사용자가 인증되지 않은 경우
-     * @throws {Error} 사용자가 다른 사용자의 데이터를 업데이트하려고 시도하는 경우
+     * @throws {Error} 사용자를 찾을 수 없는 경우
+     * @throws {Error} 업데이트할 필드가 없는 경우
      *
      * @example
      * ```typescript
      * const userId = await updateUserData({
-     *   clerkId: "user_123",
-     *   email: "user@example.com",
      *   name: "John Doe"
      * });
      * ```
@@ -113,44 +108,37 @@ export const getOrCreateUser = mutation({
     export const updateUserData = mutation({
     handler: async (
         ctx,
-        args: { clerkId: string; email: string; name: string }
+        args: { name?: string; email?: string }
     ) => {
-        // 입력값 검증
-        if (!args.clerkId || !args.email) {
-        throw new Error("Missing required fields: clerkId and email");
-        }
-
-        if (!args.email.includes("@")) {
-        throw new Error("Invalid email format");
-        }
-
         const identity = await ctx.auth.getUserIdentity();
         if (!identity) throw new Error("Not authenticated");
 
-        // 사용자가 자신의 데이터를 업데이트하는지 확인
-        if (identity.subject !== args.clerkId) {
-        throw new Error("Unauthorized");
-        }
-
+        // 현재 사용자 찾기
         const existingUser = await ctx.db
         .query("users")
-        .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+        .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
         .first();
 
-        if (existingUser) {
-        // 기존 사용자 업데이트
-        return await ctx.db.patch(existingUser._id, {
-            email: args.email,
-            name: args.name,
-        });
-        } else {
-        // 존재하지 않으면 새 사용자 생성
-        return await ctx.db.insert("users", {
-            clerkId: args.clerkId,
-            email: args.email,
-            name: args.name,
-            createdAt: Date.now(),
-        });
+        if (!existingUser) {
+        throw new Error("User not found. Please sign in again.");
         }
+
+        // 업데이트할 필드 준비
+        const updates: { name?: string; email?: string } = {};
+        if (args.name !== undefined) updates.name = args.name;
+        if (args.email !== undefined) {
+            if (!args.email.includes("@")) {
+                throw new Error("Invalid email format");
+            }
+            updates.email = args.email;
+        }
+
+        if (Object.keys(updates).length === 0) {
+            throw new Error("No fields to update");
+        }
+
+        // 기존 사용자 업데이트
+        await ctx.db.patch(existingUser._id, updates);
+        return existingUser._id;
     },
 });

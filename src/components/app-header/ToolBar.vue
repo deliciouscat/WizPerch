@@ -117,9 +117,9 @@ function handleBlankClick() {
 
 // Handle submit
 function handleSubmit() {
-  if (inputValue.value.trim()) {
+  if (inputValue.value.trim() && (state.value === 'search' || state.value === 'talk')) {
     emit('submit', {
-      toolbar_operation: state.value,
+      toolbar_operation: state.value as 'search' | 'talk',
       toolbar_input: inputValue.value,
       suggestions_used: usedSuggestions.value
     })

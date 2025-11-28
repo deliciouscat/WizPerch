@@ -46,13 +46,9 @@
     </div>
 
     <div class="profile-actions">
-      <SignOutButton>
-        <template #default="{ signOut }">
-          <button @click="signOut" class="signout-button">
-            로그아웃
-          </button>
-        </template>
-      </SignOutButton>
+      <button @click="handleSignOut" class="signout-button">
+        로그아웃
+      </button>
     </div>
   </div>
 
@@ -83,10 +79,10 @@
 import { useConvexQuery, useConvexMutation } from "convex-vue";
 import { api } from "../../../convex/_generated/api";
 import { onMounted, computed, ref, watch } from "vue";
-import { SignOutButton, SignIn, useUser } from "@clerk/vue";
+import { SignOutButton, SignIn, useUser, useAuth } from "@clerk/vue";
 import { PhArrowLeft } from "@phosphor-icons/vue";
 import { useAppStore } from "@/stores/app";
-import { logger } from "@/utils/logger";
+import { logger, isDev } from "@/utils/logger";
 import LoadingSpinner from "./LoadingSpinner.vue";
 import NicknameSetup from "./NicknameSetup.vue";
 
@@ -126,6 +122,7 @@ const errorId = ref<string | null>(null);
 
 // Clerk 사용자 확인
 const { user: clerkUser, isLoaded: clerkIsLoaded } = useUser();
+const { signOut } = useAuth();
 const isAuthenticated = computed(() => {
   const auth = clerkIsLoaded.value && !!clerkUser.value;
   logger.debug('UserProfile', '인증 상태 확인', {
@@ -241,6 +238,17 @@ function handleNicknameComplete() {
 }
 
 /**
+ * 로그아웃 핸들러
+ */
+async function handleSignOut() {
+  try {
+    await signOut.value();
+  } catch (error) {
+    logger.error('UserProfile', '로그아웃 실패', error);
+  }
+}
+
+/**
  * 이름에서 이니셜을 추출하는 함수
  */
 function getInitials(name: string | undefined): string {
@@ -329,7 +337,7 @@ onMounted(async () => {
     logger.info('UserProfile', 'getOrCreateUser 완료', { userId });
 
     // 개발 환경에서만 추가 디버깅
-    if (logger.isDev) {
+    if (isDev) {
       logger.debug('UserProfile', 'getOrCreateUser 완료 후 1초 대기...');
       await new Promise(resolve => setTimeout(resolve, 1000));
       logger.debug('UserProfile', '대기 완료, getCurrentUser 상태 확인', {

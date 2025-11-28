@@ -2,7 +2,7 @@
   <div class="saved-tab-list" @click="handleOpenTabs">
     <div class="indicator"></div>
     <div class="content">
-      <div class="save-date">{{ save_date }}</div>
+      <div class="save-date">{{ saveDate }}</div>
       <div class="summary-text">{{ tabs.length }} tabs saved</div>
       <div class="favicons">
         <img
@@ -22,7 +22,7 @@ import { computed } from 'vue'
 import type { PageData } from '@/types'
 
 interface Props {
-  save_date: string
+  saveDate: string
   tabs: PageData[]
   onOpenTabs: (urls: string[]) => void
   onDeleteTabs: (saveDate: string) => void

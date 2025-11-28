@@ -1,0 +1,71 @@
+{
+    "manifest_version": 3,
+    "name": "WizPerch",
+    "version": "0.0.1",
+    "description": "웹 페이지 추천 및 정보탐색 연속성 지원 크롬 익스텐션",
+    "icons": {
+        "16": "assets/icon-light-16.png",
+        "48": "assets/icon-light-48.png",
+        "128": "assets/icon-light-128.png"
+    },
+    "action": {
+        "default_title": "WizPerch 열기",
+        "theme_icons": [
+            {
+                "light": "assets/icon-light-16.png",
+                "dark": "assets/icon-dark-16.png",
+                "size": 16
+            },
+            {
+                "light": "assets/icon-light-48.png",
+                "dark": "assets/icon-dark-48.png",
+                "size": 48
+            },
+            {
+                "light": "assets/icon-light-128.png",
+                "dark": "assets/icon-dark-128.png",
+                "size": 128
+            }
+        ]
+    },
+    "background": {
+        "service_worker": "background.js"
+    },
+    "side_panel": {
+        "default_path": "index.html"
+    },
+    "commands": {
+        "_execute_action": {
+            "suggested_key": {
+                "default": "Alt+W"
+            },
+            "description": "WizPerch 사이드 패널 토글"
+        },
+        "save-tabs": {
+            "suggested_key": {
+                "default": "Alt+S"
+            },
+            "description": "현재 탭들을 내일읽기에 저장"
+        }
+    },
+    "permissions": [
+        "sidePanel",
+        "tabs",
+        "history",
+        "storage",
+        "activeTab",
+        "scripting",
+        "notifications"
+    ],
+    "host_permissions": [
+        "https://*.clerk.accounts.dev/*",
+        "https://*.clerk.com/*",
+        "https://*.convex.cloud/*",
+        "https://*.paddle.com/*",
+        "https://*.paddleapi.com/*"
+    ],
+    "content_security_policy": {
+        "extension_pages": "script-src 'self'; object-src 'self'"
+    }
+}
+

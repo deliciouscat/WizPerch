@@ -10,7 +10,7 @@
       <EachSavedTabList
         v-for="tabGroup in group.tabs"
         :key="tabGroup.save_date"
-        :save-date="tabGroup.save_date"
+        :saveDate="tabGroup.save_date"
         :tabs="tabGroup.pages"
         @open-tabs="handleOpenTabs"
         @delete-tabs="handleDeleteTabs"
@@ -42,11 +42,11 @@ function dateRange(date: string): string {
   const daysDiff = Math.floor((today.getTime() - dateObj.getTime()) / (1000 * 60 * 60 * 24))
   
   const dateRanges = [
-    { threshold: 0, name: i18nData.today },
-    { threshold: 1, name: i18nData.yesterday },
-    { threshold: 7, name: i18nData.last_7_d },
-    { threshold: 30, name: i18nData.last_30_d },
-    { threshold: 365, name: i18nData.last_year }
+    { threshold: 0, name: i18nData.date.today },
+    { threshold: 1, name: i18nData.date.yesterday },
+    { threshold: 7, name: i18nData.date.last_7_d },
+    { threshold: 30, name: i18nData.date.last_30_d },
+    { threshold: 365, name: i18nData.date.last_year }
   ]
   
   for (const range of dateRanges) {
@@ -55,7 +55,7 @@ function dateRange(date: string): string {
     }
   }
   
-  return i18nData.long_ago
+  return i18nData.date.long_ago
 }
 
 const groupedTabs = computed(() => {

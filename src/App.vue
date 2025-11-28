@@ -18,10 +18,9 @@
           <Settings v-else-if="appStore.overlayMode === 'settings'" />
 
           <!-- 일반 모드 -->
-          <ExplorePlane v-else-if="appStore.currentMode === 'explore'" :pages="samplePages" :comments="sampleComments"
+          <ExplorePlane v-else-if="appStore.currentMode === 'explore'" :pages="samplePages"
             :toolbar-output="appStore.toolbarOutput" :comment-author="commentAuthor" @save-tabs="handleSaveTabs"
-            @navigate-pending="handleNavigatePending" @submit-comment="handleSubmitComment"
-            @comment-expand="handleCommentExpand" />
+            @navigate-pending="handleNavigatePending" />
 
           <PendingPlane v-else-if="appStore.currentMode === 'pending'" :tabs="savedTabs" @open-tabs="handleOpenTabs"
             @delete-tabs="handleDeleteTabs" />
@@ -46,7 +45,7 @@ import PendingPlane from './components/pending-plane/PendingPlane.vue'
 import UserProfile from './components/convex-provider/UserProfile.vue'
 import Settings from './components/convex-provider/Settings.vue'
 import LoadingSpinner from './components/convex-provider/LoadingSpinner.vue'
-import type { PageData, CommentData, SavedTabGroup, ToolbarOutput } from '@/types'
+import type { PageData, SavedTabGroup, ToolbarOutput } from '@/types'
 import querySuggestions from './components/explore-plane/query_suggestions.json'
 
 const { user, isLoaded } = useUser()
@@ -60,14 +59,6 @@ const samplePages = ref<PageData[]>([
     favicon: 'https://example.com/favicon.ico',
     url: 'https://example.com',
     keyword: ['example', 'test']
-  }
-])
-
-const sampleComments = ref<CommentData[]>([
-  {
-    nametag: 'User1 • Developer',
-    content: 'This is a sample comment',
-    commentId: '1'
   }
 ])
 
@@ -99,19 +90,7 @@ function handleNavigatePending() {
   appStore.setMode('pending')
 }
 
-async function handleSubmitComment(content: string) {
-  // TODO: Convex API 호출
-  console.log('Submitting comment:', content)
-  sampleComments.value.push({
-    nametag: `${commentAuthor.nickname} • ${commentAuthor.epithet}`,
-    content,
-    commentId: Date.now().toString()
-  })
-}
-
-function handleCommentExpand(commentId: string | null) {
-  console.log('Comment expand:', commentId)
-}
+// handleSubmitComment와 handleCommentExpand는 이제 BottomSheet 내부에서 처리됨
 
 function handleOpenTabs(urls: string[]) {
   urls.forEach(url => {
@@ -129,8 +108,7 @@ onMounted(() => {
     isLoaded: isLoaded.value,
     user: user.value,
     currentMode: appStore.currentMode,
-    samplePages: samplePages.value.length,
-    sampleComments: sampleComments.value.length
+    samplePages: samplePages.value.length
   })
 })
 </script>

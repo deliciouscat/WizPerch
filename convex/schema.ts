@@ -51,13 +51,11 @@ export default defineSchema({
 
     // 댓글 테이블
     comments: defineTable({
-        commentId: v.id('comments'),
         userId: v.id('users'),
         pageId: v.id('pages'),
         content: v.string(),
         createdAt: v.number(),
     })
-        .index('by_comment_id', ['commentId'])
         .index('by_user_id', ['userId'])
         .index('by_page_id', ['pageId']),
 })

@@ -19,24 +19,33 @@
       </div>
     </div>
     <div class="bottom-sheet-section" :style="{ height: `${bottomSheetRatio}%` }">
-      <BottomSheet :docComment="comments" :userNickname="commentAuthor.nickname" :epithet="commentAuthor.epithet"
-        @submitComment="handleSubmitComment" @expandChange="handleCommentExpand" />
+      <BottomSheet 
+        v-if="selectedPageId"
+        :pageId="selectedPageId"
+        :userNickname="commentAuthor.nickname"
+        :epithet="commentAuthor.epithet"
+      />
+      <div v-else class="no-page-selected">
+        페이지를 선택하면 댓글을 볼 수 있습니다.
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
+import { useConvexMutation } from 'convex-vue'
+import { api } from '../../../convex/_generated/api'
 import Recommended from './recommend-n-search/Recommended.vue'
 import Sponsor from './recommend-n-search/Sponsor.vue'
 import BottomSheet from './bottom-sheet/BottomSheet.vue'
 import { keyword_search } from './recommend-n-search/Search'
 import type { PageData, CommentData, ToolbarOutput } from '@/types'
+import type { Id } from '../../../convex/_generated/dataModel'
 import querySuggestions from './query_suggestions.json'
 
 interface Props {
   pages: PageData[]
-  comments: CommentData[]
   toolbarOutput: ToolbarOutput | null
   commentAuthor: {
     nickname: string
@@ -44,8 +53,6 @@ interface Props {
   }
   onSaveTabs: (tabs: { save_date: string; pages: PageData[] }) => Promise<void>
   onNavigatePending: () => void
-  onSubmitComment: (content: string) => Promise<void>
-  onCommentExpand: (commentId: string | null) => void
 }
 
 const props = defineProps<Props>()
@@ -53,6 +60,10 @@ const props = defineProps<Props>()
 // State
 const filteredPages = ref<PageData[]>(props.pages)
 const saveTabsStatus = ref<'idle' | 'loading' | 'success' | 'error'>('idle')
+const selectedPageId = ref<Id<'pages'> | null>(null)
+
+// Convex mutation
+const { mutate: getOrCreatePage } = useConvexMutation(api.pages.getOrCreatePage)
 
 // Computed
 const currentSuggestions = computed(() => {
@@ -69,12 +80,11 @@ const currentSuggestions = computed(() => {
 })
 
 const bottomSheetRatio = computed(() => {
-  const numOfComments = props.comments.length
-  const numOfRecommendedPages = filteredPages.value.length
-  let ratio = 18 * numOfComments - 4 * numOfRecommendedPages - 5
-  if (ratio < 40) ratio = 40  // 최소 40%
-  if (ratio > 60) ratio = 60
-  return ratio
+  // 선택된 페이지가 있으면 BottomSheet 표시
+  if (selectedPageId.value) {
+    return 40  // 기본 40%
+  }
+  return 0  // 페이지가 선택되지 않으면 숨김
 })
 
 const recommendedRatio = computed(() => {
@@ -114,9 +124,9 @@ onMounted(() => {
   console.log('ExplorePlane mounted:', {
     pages: props.pages.length,
     filteredPages: filteredPages.value.length,
-    comments: props.comments.length,
     recommendedRatio: recommendedRatio.value,
-    bottomSheetRatio: bottomSheetRatio.value
+    bottomSheetRatio: bottomSheetRatio.value,
+    selectedPageId: selectedPageId.value
   })
 })
 
@@ -136,8 +146,27 @@ async function handleSaveTabs() {
   }
 }
 
-function handlePageClick(url: string) {
+async function handlePageClick(url: string) {
+  // 페이지를 새 탭에서 열기
   window.open(url, '_blank')
+  
+  // 선택된 페이지 찾기
+  const page = props.pages.find(p => p.url === url)
+  if (page) {
+    try {
+      // Convex에서 페이지 ID 가져오기 또는 생성
+      const pageId = await getOrCreatePage({
+        url: page.url,
+        title: page.title,
+        passage: page.description,
+        tags: page.keyword,
+        favicon: page.favicon,
+      })
+      selectedPageId.value = pageId
+    } catch (error) {
+      console.error('Failed to get or create page:', error)
+    }
+  }
 }
 
 function handleSuggestionClick(suggestion: string) {
@@ -145,13 +174,7 @@ function handleSuggestionClick(suggestion: string) {
   console.log('Suggestion clicked:', suggestion)
 }
 
-async function handleSubmitComment(content: string) {
-  await props.onSubmitComment(content)
-}
-
-function handleCommentExpand(commentId: string | null) {
-  props.onCommentExpand(commentId)
-}
+// handleSubmitComment와 handleCommentExpand는 이제 BottomSheet 내부에서 처리됨
 </script>
 
 <style scoped>
@@ -227,5 +250,16 @@ function handleCommentExpand(commentId: string | null) {
   flex-shrink: 0;
   /* 축소 방지 */
   background-color: var(--background);
+}
+
+.no-page-selected {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--grey-lv3);
+  font-size: 14px;
+  padding: 20px;
+  text-align: center;
 }
 </style>

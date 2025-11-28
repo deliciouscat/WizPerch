@@ -1,14 +1,25 @@
 <template>
+  <!-- 사용자가 로그인하지 않은 경우 -->
+  <div v-if="!isAuthenticated" class="profile-not-authenticated">
+    <div class="signin-container">
+      <h2>로그인이 필요합니다</h2>
+      <p>프로필을 보려면 먼저 로그인해주세요.</p>
+      <SignIn />
+    </div>
+  </div>
+
   <!-- 닉네임 설정이 필요한 경우 -->
-  <NicknameSetup v-if="needsNicknameSetup" @complete="handleNicknameComplete" />
+  <NicknameSetup v-else-if="needsNicknameSetup" @complete="handleNicknameComplete" />
 
   <div v-else-if="isLoading" class="profile-loading">
     <LoadingSpinner size="medium" text="Loading profile..." />
   </div>
 
   <div v-else-if="error" class="profile-error">
-    <p>Error loading profile: {{ error }}</p>
-    <button @click="retryLoad" class="retry-button">Retry</button>
+    <p>프로필을 불러오는 중 오류가 발생했습니다.</p>
+    <p v-if="errorId" class="error-id">에러 ID: {{ errorId }}</p>
+    <p class="error-hint">문제가 계속되면 에러 ID를 포함하여 문의해주세요.</p>
+    <button @click="handleRetry" class="retry-button">다시 시도</button>
   </div>
 
   <div v-else-if="currentUser" class="profile-content">
@@ -71,10 +82,11 @@
 
 import { useConvexQuery, useConvexMutation } from "convex-vue";
 import { api } from "../../../convex/_generated/api";
-import { onMounted, computed, ref } from "vue";
-import { SignOutButton } from "@clerk/vue";
+import { onMounted, computed, ref, watch } from "vue";
+import { SignOutButton, SignIn, useUser } from "@clerk/vue";
 import { PhArrowLeft } from "@phosphor-icons/vue";
 import { useAppStore } from "@/stores/app";
+import { logger } from "@/utils/logger";
 import LoadingSpinner from "./LoadingSpinner.vue";
 import NicknameSetup from "./NicknameSetup.vue";
 
@@ -109,13 +121,96 @@ const {
 
 const appStore = useAppStore();
 
+// 에러 ID 저장
+const errorId = ref<string | null>(null);
+
+// Clerk 사용자 확인
+const { user: clerkUser, isLoaded: clerkIsLoaded } = useUser();
+const isAuthenticated = computed(() => {
+  const auth = clerkIsLoaded.value && !!clerkUser.value;
+  logger.debug('UserProfile', '인증 상태 확인', {
+    clerkIsLoaded: clerkIsLoaded.value,
+    hasUser: !!clerkUser.value,
+    isAuthenticated: auth
+  });
+  return auth;
+});
+
+// 상태 변화 추적 (개발 환경에서만 상세 로그)
+watch([isFetchingUser, isCreatingUser, currentUser, error], ([fetching, creating, user, err]) => {
+  logger.debug('UserProfile', '상태 변화', {
+    isFetchingUser: fetching,
+    isCreatingUser: creating,
+    currentUser: user ? {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      clerkId: (user as any).clerkId,
+      createdAt: user.createdAt
+    } : null,
+    error: err ? {
+      message: err instanceof Error ? err.message : String(err),
+      stack: err instanceof Error ? err.stack : undefined
+    } : null,
+    timestamp: new Date().toISOString()
+  });
+
+  // 에러 발생 시 프로덕션에서도 로깅 (민감한 정보 마스킹)
+  if (err) {
+    const id = logger.error('UserProfile', '프로필 로드 중 오류 발생', err);
+    errorId.value = id;
+    // TODO: 에러 추적 서비스(Sentry 등)에 전송
+  } else {
+    errorId.value = null;
+  }
+}, { immediate: true, deep: true });
+
+// getCurrentUser 쿼리 상태 추적
+watch(() => isFetchingUser.value, (fetching, wasFetching) => {
+  logger.debug('UserProfile', 'getCurrentUser 쿼리 상태 변화', {
+    wasFetching,
+    isFetching: fetching,
+    changed: wasFetching !== fetching,
+    currentUser: currentUser.value ? {
+      _id: currentUser.value._id,
+      name: currentUser.value.name,
+      email: currentUser.value.email
+    } : '없음',
+    error: error.value ? {
+      message: error.value instanceof Error ? error.value.message : String(error.value)
+    } : null,
+    timestamp: new Date().toISOString()
+  });
+
+  // 5초 이상 로딩 중이면 경고 (프로덕션에서도 표시)
+  if (fetching) {
+    setTimeout(() => {
+      if (isFetchingUser.value) {
+        logger.warn('UserProfile', 'getCurrentUser 쿼리가 5초 이상 로딩 중입니다', {
+          isFetchingUser: isFetchingUser.value,
+          currentUser: currentUser.value ? '있음' : '없음',
+          hasError: !!error.value
+        });
+      }
+    }, 5000);
+  }
+}, { immediate: true });
+
 /**
  * 컴포넌트가 로딩 상태인지 여부를 결정하는 계산된 속성.
  *
  * 데이터가 가져와지거나 사용자 레코드가 생성/업데이트되는 동안
  * 프로필 콘텐츠를 렌더링하는 것을 방지합니다.
  */
-const isLoading = computed(() => isFetchingUser.value || isCreatingUser.value);
+const isLoading = computed(() => {
+  const loading = isFetchingUser.value || isCreatingUser.value;
+  logger.debug('UserProfile', 'isLoading 계산', {
+    isFetchingUser: isFetchingUser.value,
+    isCreatingUser: isCreatingUser.value,
+    isLoading: loading
+  });
+  return loading;
+});
 
 /**
  * 닉네임 설정이 필요한지 확인하는 계산된 속성.
@@ -173,11 +268,22 @@ function goBack() {
  * @async
  * @returns {Promise<void>}
  */
-const retryLoad = async () => {
+async function handleRetry() {
+  errorId.value = null;
+  const id = await retryLoad();
+  if (id) {
+    errorId.value = id;
+  }
+}
+
+const retryLoad = async (): Promise<string | null> => {
   try {
+    logger.info('UserProfile', '프로필 재시도 시작');
     await getOrCreateUser({});
+    logger.info('UserProfile', '프로필 재시도 완료');
+    return null;
   } catch (error) {
-    console.error("Error retrying user load:", error);
+    return logger.error('UserProfile', '프로필 재시도 중 오류 발생', error);
   }
 };
 
@@ -203,10 +309,38 @@ const retryLoad = async () => {
  * ```
  */
 onMounted(async () => {
+  logger.debug('UserProfile', '컴포넌트 마운트됨', {
+    isAuthenticated: isAuthenticated.value,
+    clerkUser: clerkUser.value ? {
+      id: clerkUser.value.id,
+      email: clerkUser.value.primaryEmailAddress?.emailAddress
+    } : null
+  });
+
+  // 인증되지 않았으면 getOrCreateUser 호출하지 않음
+  if (!isAuthenticated.value) {
+    logger.debug('UserProfile', '사용자가 로그인하지 않아서 getOrCreateUser 호출하지 않음');
+    return;
+  }
+
   try {
-    await getOrCreateUser({});
+    logger.info('UserProfile', 'getOrCreateUser 호출 시작');
+    const userId = await getOrCreateUser({});
+    logger.info('UserProfile', 'getOrCreateUser 완료', { userId });
+
+    // 개발 환경에서만 추가 디버깅
+    if (logger.isDev) {
+      logger.debug('UserProfile', 'getOrCreateUser 완료 후 1초 대기...');
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      logger.debug('UserProfile', '대기 완료, getCurrentUser 상태 확인', {
+        isFetchingUser: isFetchingUser.value,
+        currentUser: currentUser.value ? '있음' : '없음',
+        hasError: !!error.value
+      });
+    }
   } catch (error) {
-    console.error("Error creating/updating user:", error);
+    const errorId = logger.error('UserProfile', '사용자 생성/업데이트 중 오류 발생', error);
+    // TODO: 에러 추적 서비스에 전송 및 사용자에게 에러 ID 표시
   }
 });
 </script>
@@ -241,6 +375,23 @@ onMounted(async () => {
 
 .profile-error p {
   color: #dc3545;
+  margin-bottom: 8px;
+}
+
+.error-id {
+  font-family: monospace;
+  font-size: 12px;
+  color: var(--grey-lv3);
+  background-color: var(--grey-lv1);
+  padding: 4px 8px;
+  border-radius: 0;
+  display: inline-block;
+  margin: 8px 0;
+}
+
+.error-hint {
+  color: var(--grey-lv3);
+  font-size: 12px;
   margin-bottom: 16px;
 }
 
@@ -275,6 +426,40 @@ onMounted(async () => {
   padding: 20px;
   text-align: center;
   color: #6c757d;
+}
+
+.profile-not-authenticated {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  padding: 20px;
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.signin-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 400px;
+  width: 100%;
+  padding: 20px;
+}
+
+.signin-container h2 {
+  color: var(--font-black);
+  margin: 0 0 8px 0;
+  font-size: 24px;
+}
+
+.signin-container p {
+  color: var(--grey-lv3);
+  margin: 0 0 24px 0;
+  font-size: 14px;
+  text-align: center;
 }
 
 /**

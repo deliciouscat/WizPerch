@@ -86,7 +86,6 @@ export const createComment = mutation({
 
     // 댓글 생성
     const commentId = await ctx.db.insert("comments", {
-      commentId: undefined as any, // Convex가 자동으로 생성
       userId: user._id,
       pageId: args.pageId,
       content: args.content,

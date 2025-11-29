@@ -26,6 +26,7 @@
         "convex": "convex dev"
     },
     "dependencies": {
+        "@clerk/clerk-js": "^5.111.0",
         "@clerk/vue": "^1.11.6",
         "@phosphor-icons/vue": "^2.2.1",
         "convex": "^1.26.2",

@@ -1,8 +1,8 @@
 <template>
   <div>
-    <!-- Show loading state while Clerk is determining authentication -->
+    <!-- Show minimal loading state while Clerk is determining authentication -->
     <div v-if="!isLoaded" class="loading-container">
-      <LoadingSpinner size="large" text="Initializing..." />
+      <LoadingSpinner size="large" text="초기화 중..." />
     </div>
 
     <!-- Show app content once authentication state is determined -->
@@ -50,6 +50,7 @@ import querySuggestions from './components/explore-plane/query_suggestions.json'
 
 const { user, isLoaded } = useUser()
 const appStore = useAppStore()
+
 
 // Sample data (실제로는 Convex에서 가져올 것)
 const samplePages = ref<PageData[]>([
@@ -104,12 +105,6 @@ function handleDeleteTabs(saveDate: string) {
 
 onMounted(() => {
   appStore.setMode('explore')
-  console.log('App mounted:', {
-    isLoaded: isLoaded.value,
-    user: user.value,
-    currentMode: appStore.currentMode,
-    samplePages: samplePages.value.length
-  })
 })
 </script>
 

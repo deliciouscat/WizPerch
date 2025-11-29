@@ -3,7 +3,11 @@
     <slot />
   </div>
   <div v-else class="convex-loading">
-    <LoadingSpinner size="medium" color="success" text="Connecting to database..." />
+    <LoadingProgress 
+      :steps="convexLoadingSteps" 
+      size="large" 
+      color="success"
+    />
   </div>
 </template>
 
@@ -27,11 +31,12 @@
 
 import { useConvexClient } from "convex-vue";
 import { useUser, useSession } from "@clerk/vue";
-import { provide, ref, watch } from "vue";
+import { provide, ref, watch, computed } from "vue";
 import { useConvexMutation } from "convex-vue";
 import { api } from "../../../convex/_generated/api";
 import { logger } from "@/utils/logger";
-import LoadingSpinner from "./LoadingSpinner.vue";
+import LoadingProgress from "./LoadingProgress.vue";
+import type { LoadingStep } from "./LoadingProgress.vue";
 
 /**
  * 인증 상태 관리를 위한 Clerk 사용자 및 세션 훅.
@@ -48,6 +53,85 @@ const { session, isLoaded: sessionIsLoaded } = useSession();
  * 불필요한 API 호출과 잠재적 오류를 방지합니다.
  */
 const isReady = ref(false);
+
+/**
+ * Convex 인증 과정의 각 단계를 추적하는 상태
+ */
+const authState = ref({
+  clerkLoaded: false,
+  sessionLoaded: false,
+  tokenFetched: false,
+  authSet: false,
+  userSynced: false,
+  error: null as string | null
+});
+
+/**
+ * Convex 로딩 단계를 계산하는 computed 속성
+ */
+const convexLoadingSteps = computed<LoadingStep[]>(() => {
+  const steps: LoadingStep[] = [
+    {
+      title: 'Clerk 사용자 로드',
+      status: clerkIsLoaded.value ? 'completed' : 'active',
+      message: clerkIsLoaded.value 
+        ? (user.value ? `사용자: ${user.value.fullName || user.value.emailAddresses[0]?.emailAddress || 'Unknown'}` : '인증되지 않음')
+        : 'Clerk 사용자 정보를 불러오는 중...'
+    },
+    {
+      title: 'Clerk 세션 로드',
+      status: sessionIsLoaded.value ? 'completed' : (clerkIsLoaded.value ? 'active' : 'pending'),
+      message: sessionIsLoaded.value 
+        ? '세션이 로드되었습니다' 
+        : clerkIsLoaded.value 
+          ? '세션을 불러오는 중...' 
+          : '사용자 로드 대기 중'
+    },
+    {
+      title: 'Convex 토큰 가져오기',
+      status: authState.value.tokenFetched 
+        ? 'completed' 
+        : (sessionIsLoaded.value && user.value && session.value ? 'active' : 'pending'),
+      message: authState.value.tokenFetched 
+        ? '토큰을 받았습니다' 
+        : (sessionIsLoaded.value && user.value && session.value 
+          ? 'Convex 인증 토큰을 요청하는 중...' 
+          : '세션 대기 중')
+    },
+    {
+      title: 'Convex 인증 설정',
+      status: authState.value.authSet 
+        ? 'completed' 
+        : (authState.value.tokenFetched ? 'active' : 'pending'),
+      message: authState.value.authSet 
+        ? '인증이 설정되었습니다' 
+        : (authState.value.tokenFetched 
+          ? 'Convex 클라이언트에 인증을 설정하는 중...' 
+          : '토큰 대기 중')
+    },
+    {
+      title: '사용자 데이터 동기화',
+      status: authState.value.userSynced 
+        ? 'completed' 
+        : (authState.value.authSet ? 'active' : 'pending'),
+      message: authState.value.userSynced 
+        ? '사용자 데이터가 동기화되었습니다' 
+        : (authState.value.authSet 
+          ? 'Convex에 사용자 데이터를 동기화하는 중...' 
+          : '인증 설정 대기 중')
+    }
+  ];
+
+  if (authState.value.error) {
+    const errorStep = steps.find(s => s.status === 'active') || steps[steps.length - 1]
+    if (errorStep) {
+      errorStep.status = 'error'
+      errorStep.error = authState.value.error
+    }
+  }
+
+  return steps
+});
 
 /**
  * 백엔드 데이터베이스에 액세스를 제공하는 Convex 클라이언트 인스턴스.
@@ -83,6 +167,16 @@ const { mutate: getOrCreateUser } = useConvexMutation(api.users.getOrCreateUser)
  * ```
  */
 const updateAuth = async () => {
+  // 상태 초기화
+  authState.value = {
+    clerkLoaded: clerkIsLoaded.value,
+    sessionLoaded: sessionIsLoaded.value,
+    tokenFetched: false,
+    authSet: false,
+    userSynced: false,
+    error: null
+  };
+
   logger.debug('ConvexProvider', 'updateAuth 호출', {
     clerkIsLoaded: clerkIsLoaded.value,
     sessionIsLoaded: sessionIsLoaded.value,
@@ -97,18 +191,37 @@ const updateAuth = async () => {
     return;
   }
 
+  authState.value.clerkLoaded = true
+  authState.value.sessionLoaded = true
+
   if (user.value && session.value) {
     try {
       logger.info('ConvexProvider', 'Clerk 인증 완료, Convex 토큰 가져오기 시작');
+      
       // Clerk 세션에서 Convex 전용 JWT 토큰 가져오기
-      const token = await session.value.getToken({ template: "convex" });
-      logger.info('ConvexProvider', 'Convex 토큰 받음', {
-        hasToken: !!token,
-        tokenLength: token?.length
-      });
+      let token: string | null = null
+      try {
+        token = await session.value.getToken({ template: "convex" });
+        authState.value.tokenFetched = true
+        logger.info('ConvexProvider', 'Convex 토큰 받음', {
+          hasToken: !!token,
+          tokenLength: token?.length
+        });
+      } catch (error: any) {
+        authState.value.error = `토큰 가져오기 실패: ${error?.message || '알 수 없는 오류'}`
+        logger.error('ConvexProvider', '토큰 가져오기 실패', error);
+        throw error
+      }
 
-      convex.setAuth(async () => token);
-      logger.info('ConvexProvider', 'Convex 인증 설정 완료');
+      try {
+        convex.setAuth(async () => token);
+        authState.value.authSet = true
+        logger.info('ConvexProvider', 'Convex 인증 설정 완료');
+      } catch (error: any) {
+        authState.value.error = `인증 설정 실패: ${error?.message || '알 수 없는 오류'}`
+        logger.error('ConvexProvider', 'Convex 인증 설정 실패', error);
+        throw error
+      }
 
       // 사용자가 변경될 때마다 사용자 데이터를 Convex에 동기화
       // 먼저 사용자가 존재하는지 확인하고, 없으면 생성
@@ -119,14 +232,18 @@ const updateAuth = async () => {
             email: user.value.primaryEmailAddress?.emailAddress
           });
           const userId = await getOrCreateUser({});
+          authState.value.userSynced = true
           logger.info('ConvexProvider', 'getOrCreateUser 완료', { userId });
-        } catch (error) {
+        } catch (error: any) {
+          authState.value.error = `사용자 동기화 실패: ${error?.message || '알 수 없는 오류'}`
           logger.error('ConvexProvider', '사용자 생성 중 오류 발생', error);
+          // 사용자 동기화 실패는 치명적이지 않을 수 있으므로 계속 진행
         }
       } else {
         logger.debug('ConvexProvider', 'user.value가 없어서 getOrCreateUser 호출하지 않음');
       }
-    } catch (error) {
+    } catch (error: any) {
+      authState.value.error = authState.value.error || `인증 프로세스 오류: ${error?.message || '알 수 없는 오류'}`
       logger.error('ConvexProvider', 'Convex 인증 설정 중 오류 발생', error);
       // 오류가 발생하더라도 무한 로딩을 방지하기 위해 ready를 true로 설정해야 합니다
     }
@@ -134,10 +251,14 @@ const updateAuth = async () => {
     logger.debug('ConvexProvider', '사용자 인증되지 않음, Convex 연결 닫기');
     // 사용자가 인증되지 않았을 때 Convex 연결 닫기
     convex.close();
+    authState.value.error = '사용자가 인증되지 않았습니다'
   }
 
   // 인증 성공/실패와 관계없이 준비 상태 설정
-  logger.debug('ConvexProvider', '준비 상태 설정: true');
+  logger.debug('ConvexProvider', '준비 상태 설정: true', {
+    error: authState.value.error,
+    authSet: authState.value.authSet
+  });
   isReady.value = true;
 };
 
@@ -177,7 +298,8 @@ watch([user, session, clerkIsLoaded, sessionIsLoaded], (newValues, oldValues) =>
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 200px;
+  min-height: 100vh;
   padding: 20px;
+  background-color: var(--background);
 }
 </style>

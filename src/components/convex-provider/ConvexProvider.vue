@@ -141,6 +141,19 @@ const convex = useConvexClient();
 provide("convex", convex);
 
 /**
+ * Convex 인증 준비 상태를 자식 컴포넌트에 제공합니다.
+ * 자식 컴포넌트는 이 상태를 확인하여 Convex 쿼리를 실행할 수 있습니다.
+ * authSet이 true일 때만 true가 됩니다.
+ */
+provide("convexReady", computed(() => isReady.value && authState.value.authSet));
+
+/**
+ * Convex 인증 설정 완료 상태를 자식 컴포넌트에 제공합니다.
+ * 이 상태가 true일 때만 쿼리를 실행해야 합니다.
+ */
+provide("convexAuthSet", computed(() => authState.value.authSet));
+
+/**
  * 데이터베이스에서 사용자를 생성하거나 가져오기 위한 Convex mutation 훅.
  * 이 mutation은 Clerk 인증 후 Convex에 사용자 레코드를 생성하는 데 사용됩니다.
  */
@@ -177,7 +190,10 @@ const updateAuth = async () => {
     error: null
   };
 
-  logger.debug('ConvexProvider', 'updateAuth 호출', {
+  // isReady를 false로 초기화하여 인증이 완료될 때까지 자식 컴포넌트가 렌더링되지 않도록 함
+  isReady.value = false;
+
+  logger.info('ConvexProvider', 'updateAuth 호출', {
     clerkIsLoaded: clerkIsLoaded.value,
     sessionIsLoaded: sessionIsLoaded.value,
     hasUser: !!user.value,
@@ -187,7 +203,12 @@ const updateAuth = async () => {
 
   // 진행하기 전에 Clerk 사용자와 세션이 모두 로드될 때까지 대기
   if (!clerkIsLoaded.value || !sessionIsLoaded.value) {
-    logger.debug('ConvexProvider', 'Clerk 아직 로딩 중, 대기...');
+    logger.info('ConvexProvider', 'Clerk 아직 로딩 중, 대기...', {
+      clerkIsLoaded: clerkIsLoaded.value,
+      sessionIsLoaded: sessionIsLoaded.value
+    });
+    // Clerk가 아직 로딩 중이면 isReady를 false로 유지하여 자식 컴포넌트가 렌더링되지 않도록 함
+    isReady.value = false;
     return;
   }
 
@@ -248,18 +269,37 @@ const updateAuth = async () => {
       // 오류가 발생하더라도 무한 로딩을 방지하기 위해 ready를 true로 설정해야 합니다
     }
   } else {
-    logger.debug('ConvexProvider', '사용자 인증되지 않음, Convex 연결 닫기');
+    logger.info('ConvexProvider', '사용자 인증되지 않음, Convex 연결 닫기', {
+      hasUser: !!user.value,
+      hasSession: !!session.value
+    });
     // 사용자가 인증되지 않았을 때 Convex 연결 닫기
     convex.close();
     authState.value.error = '사용자가 인증되지 않았습니다'
+    // 인증되지 않은 경우에도 준비 상태를 true로 설정 (로그인 화면 표시를 위해)
+    // authSet은 false로 유지하여 Convex 쿼리가 실행되지 않도록 함
+    isReady.value = true;
+    return;
   }
 
-  // 인증 성공/실패와 관계없이 준비 상태 설정
-  logger.debug('ConvexProvider', '준비 상태 설정: true', {
-    error: authState.value.error,
-    authSet: authState.value.authSet
-  });
-  isReady.value = true;
+  // 인증이 성공적으로 설정되었을 때만 준비 상태를 true로 설정
+  // authSet이 true여야 Convex 쿼리가 정상적으로 작동합니다
+  if (authState.value.authSet) {
+    logger.debug('ConvexProvider', 'Convex 인증 완료, 준비 상태 설정: true', {
+      error: authState.value.error,
+      authSet: authState.value.authSet,
+      userSynced: authState.value.userSynced
+    });
+    isReady.value = true;
+  } else {
+    logger.debug('ConvexProvider', 'Convex 인증 미완료, 준비 상태 유지: false', {
+      error: authState.value.error,
+      authSet: authState.value.authSet
+    });
+    // 인증 설정이 완료되지 않았으면 준비 상태를 false로 유지
+    // 이렇게 하면 자식 컴포넌트가 렌더링되지 않아 쿼리가 실행되지 않습니다
+    isReady.value = false;
+  }
 };
 
 /**
@@ -275,11 +315,13 @@ const updateAuth = async () => {
  * 자식을 렌더링하기 전에 인증 상태를 설정합니다.
  */
 watch([user, session, clerkIsLoaded, sessionIsLoaded], (newValues, oldValues) => {
-  logger.debug('ConvexProvider', 'Watcher 트리거됨', {
+  logger.info('ConvexProvider', 'Watcher 트리거됨', {
     userChanged: newValues[0] !== oldValues?.[0],
     sessionChanged: newValues[1] !== oldValues?.[1],
     clerkIsLoaded: newValues[2],
     sessionIsLoaded: newValues[3],
+    hasUser: !!newValues[0],
+    hasSession: !!newValues[1],
     timestamp: new Date().toISOString()
   });
   updateAuth();

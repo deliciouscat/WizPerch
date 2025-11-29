@@ -134,9 +134,24 @@ onMounted(() => {
 async function handleSaveTabs() {
   try {
     saveTabsStatus.value = 'loading'
+    
+    // 현재 열려있는 탭들 가져오기
+    const tabs = await chrome.tabs.query({ currentWindow: true })
+    
+    // 탭 정보를 PageData 형식으로 변환
+    const currentTabs: PageData[] = tabs
+      .filter((tab: chrome.tabs.Tab) => tab.url && !tab.url.startsWith('chrome://') && !tab.url.startsWith('chrome-extension://'))
+      .map((tab: chrome.tabs.Tab) => ({
+        title: tab.title || 'Untitled',
+        description: tab.title || '', // 탭에는 description이 없으므로 title 사용
+        favicon: tab.favIconUrl || '',
+        url: tab.url || '',
+        keyword: [] // 탭에는 keyword가 없으므로 빈 배열
+      }))
+    
     await props.onSaveTabs({
       save_date: new Date().toISOString(),
-      pages: props.pages
+      pages: currentTabs
     })
     saveTabsStatus.value = 'success'
     props.onNavigatePending()

@@ -8,6 +8,15 @@
     </div>
   </div>
 
+  <!-- Convex 인증이 완료되지 않은 경우 (로그인은 했지만 Convex 인증이 완료되지 않음) -->
+  <div v-else-if="!convexAuthSet" class="profile-not-authenticated">
+    <div class="signin-container">
+      <h2>인증 초기화 중...</h2>
+      <p>Convex 인증을 설정하는 중입니다. 잠시만 기다려주세요.</p>
+      <LoadingSpinner size="medium" text="인증 설정 중..." />
+    </div>
+  </div>
+
   <!-- 닉네임 설정이 필요한 경우 -->
   <NicknameSetup v-else-if="needsNicknameSetup" @complete="handleNicknameComplete" />
 
@@ -78,7 +87,7 @@
 
 import { useConvexQuery, useConvexMutation } from "convex-vue";
 import { api } from "../../../convex/_generated/api";
-import { onMounted, computed, ref, watch } from "vue";
+import { onMounted, computed, ref, watch, inject, type ComputedRef } from "vue";
 import { SignOutButton, SignIn, useUser, useAuth } from "@clerk/vue";
 import { PhArrowLeft } from "@phosphor-icons/vue";
 import { useAppStore } from "@/stores/app";
@@ -96,24 +105,17 @@ import NicknameSetup from "./NicknameSetup.vue";
  *
  * @type {import('convex-vue').UseConvexMutationReturn}
  */
-const { mutate: getOrCreateUser, isPending: isCreatingUser } =
-  useConvexMutation(api.users.getOrCreateUser);
+/**
+ * Convex 인증 준비 상태를 부모 컴포넌트에서 가져옵니다.
+ * 이 상태가 true가 될 때까지 쿼리를 실행하지 않습니다.
+ */
+const convexReady = inject<ComputedRef<boolean>>("convexReady", computed(() => false));
 
 /**
- * 현재 사용자의 프로필 데이터를 가져오기 위한 Convex query 훅.
- *
- * 이 쿼리는 Convex 데이터베이스에서 인증된 사용자의 프로필 정보를
- * 자동으로 가져옵니다. 데이터는 반응형이며 사용자 프로필이 변경되면
- * 자동으로 업데이트됩니다.
- *
- * @type {import('convex-vue').UseConvexQueryReturn}
+ * Convex 인증 설정 완료 상태를 부모 컴포넌트에서 가져옵니다.
+ * 이 상태가 true일 때만 쿼리를 실행해야 합니다.
  */
-const {
-  data: currentUser,
-  error,
-  isPending: isFetchingUser,
-  suspense,
-} = useConvexQuery(api.users.getCurrentUser, {});
+const convexAuthSet = inject<ComputedRef<boolean>>("convexAuthSet", computed(() => false));
 
 const appStore = useAppStore();
 
@@ -132,6 +134,67 @@ const isAuthenticated = computed(() => {
   });
   return auth;
 });
+
+const { mutate: getOrCreateUser, isPending: isCreatingUser } =
+  useConvexMutation(api.users.getOrCreateUser);
+
+/**
+ * 쿼리 실행 조건을 계산합니다.
+ * convexAuthSet이 true일 때만 쿼리를 실행해야 합니다.
+ */
+const shouldFetchUser = computed(() => {
+  return convexAuthSet.value && isAuthenticated.value;
+});
+
+/**
+ * 현재 사용자의 프로필 데이터를 가져오기 위한 Convex query 훅.
+ *
+ * 이 쿼리는 Convex 데이터베이스에서 인증된 사용자의 프로필 정보를
+ * 자동으로 가져옵니다. 데이터는 반응형이며 사용자 프로필이 변경되면
+ * 자동으로 업데이트됩니다.
+ *
+ * 주의: convex-vue의 useConvexQuery는 조건부 실행을 지원하지 않으므로,
+ * 쿼리는 항상 실행됩니다. 하지만 convexAuthSet이 false일 때는
+ * 쿼리 결과를 무시하고 로딩 상태를 표시하지 않습니다.
+ *
+ * @type {import('convex-vue').UseConvexQueryReturn}
+ */
+const {
+  data: currentUser,
+  error,
+  isPending: isFetchingUser,
+  suspense,
+} = useConvexQuery(api.users.getCurrentUser, {});
+
+/**
+ * 실제 로딩 상태를 계산합니다.
+ * convexAuthSet이 false이거나 shouldFetchUser가 false이면 로딩하지 않습니다.
+ * 단, 사용자가 로그인했지만 convexAuthSet이 false인 경우는 인증 초기화 중이므로 로딩 상태로 표시합니다.
+ */
+const isLoading = computed(() => {
+  // 사용자가 로그인하지 않았으면 로딩하지 않음
+  if (!isAuthenticated.value) {
+    return false;
+  }
+  // 사용자가 로그인했지만 convexAuthSet이 false이면 인증 초기화 중이므로 로딩 상태로 표시
+  if (!convexAuthSet.value) {
+    return true;
+  }
+  // 그 외의 경우 실제 로딩 상태 반환
+  return isFetchingUser.value || isCreatingUser.value;
+});
+
+/**
+ * convexAuthSet 상태를 모니터링하여 쿼리 실행 시점을 로깅합니다.
+ */
+watch([convexAuthSet, convexReady, isAuthenticated], ([authSet, ready, authenticated]) => {
+  logger.info('UserProfile', '인증 상태 변화', {
+    convexAuthSet: authSet,
+    convexReady: ready,
+    isAuthenticated: authenticated,
+    canFetchUser: authSet && ready && authenticated
+  });
+}, { immediate: true });
 
 // 상태 변화 추적 (개발 환경에서만 상세 로그)
 watch([isFetchingUser, isCreatingUser, currentUser, error], ([fetching, creating, user, err]) => {
@@ -180,34 +243,20 @@ watch(() => isFetchingUser.value, (fetching, wasFetching) => {
   });
 
   // 5초 이상 로딩 중이면 경고 (프로덕션에서도 표시)
-  if (fetching) {
+  // 단, convexAuthSet이 true일 때만 경고 (인증이 완료된 후에만 쿼리가 실행되어야 함)
+  if (fetching && convexAuthSet.value) {
     setTimeout(() => {
-      if (isFetchingUser.value) {
+      if (isFetchingUser.value && convexAuthSet.value) {
         logger.warn('UserProfile', 'getCurrentUser 쿼리가 5초 이상 로딩 중입니다', {
           isFetchingUser: isFetchingUser.value,
           currentUser: currentUser.value ? '있음' : '없음',
-          hasError: !!error.value
+          hasError: !!error.value,
+          convexAuthSet: convexAuthSet.value
         });
       }
     }, 5000);
   }
 }, { immediate: true });
-
-/**
- * 컴포넌트가 로딩 상태인지 여부를 결정하는 계산된 속성.
- *
- * 데이터가 가져와지거나 사용자 레코드가 생성/업데이트되는 동안
- * 프로필 콘텐츠를 렌더링하는 것을 방지합니다.
- */
-const isLoading = computed(() => {
-  const loading = isFetchingUser.value || isCreatingUser.value;
-  logger.debug('UserProfile', 'isLoading 계산', {
-    isFetchingUser: isFetchingUser.value,
-    isCreatingUser: isCreatingUser.value,
-    isLoading: loading
-  });
-  return loading;
-});
 
 /**
  * 닉네임 설정이 필요한지 확인하는 계산된 속성.
@@ -319,18 +368,41 @@ const retryLoad = async (): Promise<string | null> => {
 onMounted(async () => {
   logger.debug('UserProfile', '컴포넌트 마운트됨', {
     isAuthenticated: isAuthenticated.value,
+    convexReady: convexReady.value,
     clerkUser: clerkUser.value ? {
       id: clerkUser.value.id,
       email: clerkUser.value.primaryEmailAddress?.emailAddress
     } : null
   });
 
-  // 인증되지 않았으면 getOrCreateUser 호출하지 않음
-  if (!isAuthenticated.value) {
-    logger.debug('UserProfile', '사용자가 로그인하지 않아서 getOrCreateUser 호출하지 않음');
+  // 인증되지 않았거나 Convex가 준비되지 않았으면 getOrCreateUser 호출하지 않음
+  if (!isAuthenticated.value || !convexReady.value) {
+    logger.debug('UserProfile', '인증 또는 Convex 준비 상태가 충족되지 않아 getOrCreateUser 호출하지 않음', {
+      isAuthenticated: isAuthenticated.value,
+      convexReady: convexReady.value
+    });
+    
+    // Convex가 준비될 때까지 대기
+    if (!convexReady.value && isAuthenticated.value) {
+      logger.debug('UserProfile', 'Convex 준비 대기 중...');
+      const unwatch = watch(convexReady, (ready) => {
+        if (ready) {
+          unwatch();
+          // Convex가 준비되면 getOrCreateUser 호출
+          handleGetOrCreateUser();
+        }
+      });
+    }
     return;
   }
 
+  await handleGetOrCreateUser();
+});
+
+/**
+ * getOrCreateUser를 호출하는 헬퍼 함수
+ */
+async function handleGetOrCreateUser() {
   try {
     logger.info('UserProfile', 'getOrCreateUser 호출 시작');
     const userId = await getOrCreateUser({});
@@ -350,7 +422,7 @@ onMounted(async () => {
     const errorId = logger.error('UserProfile', '사용자 생성/업데이트 중 오류 발생', error);
     // TODO: 에러 추적 서비스에 전송 및 사용자에게 에러 ID 표시
   }
-});
+}
 </script>
 
 <style scoped>

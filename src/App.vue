@@ -35,7 +35,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch, onUnmounted } from 'vue'
 import { useUser } from '@clerk/vue'
 import { useAppStore } from '@/stores/app'
 import ConvexProvider from './components/convex-provider/ConvexProvider.vue'
@@ -103,8 +103,75 @@ function handleDeleteTabs(saveDate: string) {
   savedTabs.value = savedTabs.value.filter(tab => tab.save_date !== saveDate)
 }
 
+// 로그인 완료 감지 및 탐색하기 모드로 리다이렉트
+let loginCheckInterval: number | null = null
+
+function checkLoginComplete() {
+  chrome.storage.local.get(['loginComplete', 'loginCompleteTime'], (result) => {
+    if (result.loginComplete && result.loginCompleteTime) {
+      // 로그인 완료 감지
+      console.log('로그인 완료 감지, 탐색하기 모드로 리다이렉트')
+
+      // 오버레이 모드 닫기 (프로필 화면에서 나가기)
+      appStore.setOverlayMode(null)
+
+      // 탐색하기 모드로 설정
+      appStore.setMode('explore')
+
+      // 로그인 완료 플래그 제거
+      chrome.storage.local.remove(['loginComplete', 'loginCompleteTime'])
+
+      // 체크 인터벌 정리
+      if (loginCheckInterval !== null) {
+        clearInterval(loginCheckInterval)
+        loginCheckInterval = null
+      }
+    }
+  })
+}
+
+// 사용자 인증 상태 변화 감지하여 탐색하기 모드로 리다이렉트
+watch([user, isLoaded], ([newUser, newIsLoaded], [oldUser, oldIsLoaded]) => {
+  // 로그인 완료 감지: 이전에는 사용자가 없었는데 지금은 있음
+  if (newIsLoaded && !oldUser && newUser) {
+    console.log('사용자 로그인 감지, 탐색하기 모드로 리다이렉트')
+
+    // 오버레이 모드 닫기
+    appStore.setOverlayMode(null)
+
+    // 탐색하기 모드로 설정
+    appStore.setMode('explore')
+  }
+}, { immediate: false })
+
 onMounted(() => {
   appStore.setMode('explore')
+
+  // 로그인 완료 체크를 위한 인터벌 설정 (5초마다 체크)
+  loginCheckInterval = window.setInterval(checkLoginComplete, 5000)
+
+  // 초기 체크
+  checkLoginComplete()
+
+  // Chrome 메시지 리스너 등록
+  if (chrome?.runtime?.onMessage) {
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      if (message.type === 'LOGIN_COMPLETE' && message.action === 'redirect_to_explore') {
+        console.log('로그인 완료 메시지 수신, 탐색하기 모드로 리다이렉트')
+        appStore.setOverlayMode(null)
+        appStore.setMode('explore')
+        sendResponse({ success: true })
+      }
+    })
+  }
+})
+
+onUnmounted(() => {
+  // 인터벌 정리
+  if (loginCheckInterval !== null) {
+    clearInterval(loginCheckInterval)
+    loginCheckInterval = null
+  }
 })
 </script>
 

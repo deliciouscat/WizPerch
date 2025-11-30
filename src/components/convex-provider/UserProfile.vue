@@ -4,7 +4,10 @@
     <div class="signin-container">
       <h2>로그인이 필요합니다</h2>
       <p>프로필을 보려면 먼저 로그인해주세요.</p>
-      <SignIn />
+      <p class="signin-hint">Chrome Extension 환경에서는 새 탭에서 로그인해야 합니다.</p>
+      <button @click="openSignInTab" class="signin-button">
+        새 탭에서 로그인
+      </button>
     </div>
   </div>
 
@@ -88,7 +91,7 @@
 import { useConvexQuery, useConvexMutation } from "convex-vue";
 import { api } from "../../../convex/_generated/api";
 import { onMounted, computed, ref, watch, inject, type ComputedRef } from "vue";
-import { SignOutButton, SignIn, useUser, useAuth } from "@clerk/vue";
+import { SignOutButton, useUser, useAuth } from "@clerk/vue";
 import { PhArrowLeft } from "@phosphor-icons/vue";
 import { useAppStore } from "@/stores/app";
 import { logger, isDev } from "@/utils/logger";
@@ -287,6 +290,71 @@ function handleNicknameComplete() {
 }
 
 /**
+ * 새 탭에서 로그인 페이지를 여는 함수
+ * Chrome Extension의 Side Panel에서는 OAuth 리다이렉트가 제대로 작동하지 않으므로
+ * 새 탭에서 로그인하도록 합니다.
+ * 
+ * 로그인 완료 후 background.js에서 탭을 감지하여 닫고,
+ * 사이드패널을 탐색하기 모드로 리다이렉트합니다.
+ */
+function openSignInTab() {
+  try {
+    // Clerk publishable key에서 도메인 추출
+    const publishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+
+    // Clerk 인스턴스에서 buildSignInUrl 가져오기 시도
+    let signInUrl: string;
+
+    // window.__clerk_instance__에서 buildSignInUrl 가져오기 시도
+    const clerkInstance = (window as any).__clerk_instance__;
+    if (clerkInstance && typeof clerkInstance.buildSignInUrl === 'function') {
+      // redirect_url 없이 로그인 URL 생성 (Clerk가 기본 처리)
+      signInUrl = clerkInstance.buildSignInUrl({});
+    } else {
+      // 폴백: publishable key에서 도메인 추출하여 URL 직접 생성
+      // pk_test_xxx 형식이면 개발 환경, pk_live_xxx 형식이면 프로덕션
+      const isDev = publishableKey.includes('pk_test_');
+      const clerkDomain = isDev ? 'accounts.clerk.dev' : 'accounts.clerk.com';
+
+      // Clerk의 sign-in URL 생성 (redirect_url 없이)
+      // 로그인 완료 후 background.js에서 처리
+      signInUrl = `https://${clerkDomain}/sign-in`;
+    }
+
+    logger.info('UserProfile', '새 탭에서 로그인 페이지 열기', {
+      signInUrl,
+      hasClerkInstance: !!clerkInstance
+    });
+
+    // 새 탭에서 로그인 페이지 열기
+    chrome.tabs.create({ url: signInUrl }, (tab) => {
+      if (tab?.id) {
+        // 로그인 탭 ID를 storage에 저장하여 background.js에서 감지할 수 있도록 함
+        chrome.storage.local.set({
+          loginTabId: tab.id,
+          loginStartTime: Date.now()
+        });
+      }
+    });
+  } catch (error) {
+    logger.error('UserProfile', '로그인 페이지 열기 실패', error);
+    // 최종 폴백: 간단한 URL로 시도
+    const publishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+    const isDev = publishableKey?.includes('pk_test_');
+    const clerkDomain = isDev ? 'accounts.clerk.dev' : 'accounts.clerk.com';
+    const fallbackUrl = `https://${clerkDomain}/sign-in`;
+    chrome.tabs.create({ url: fallbackUrl }, (tab) => {
+      if (tab?.id) {
+        chrome.storage.local.set({
+          loginTabId: tab.id,
+          loginStartTime: Date.now()
+        });
+      }
+    });
+  }
+}
+
+/**
  * 로그아웃 핸들러
  */
 async function handleSignOut() {
@@ -381,7 +449,7 @@ onMounted(async () => {
       isAuthenticated: isAuthenticated.value,
       convexReady: convexReady.value
     });
-    
+
     // Convex가 준비될 때까지 대기
     if (!convexReady.value && isAuthenticated.value) {
       logger.debug('UserProfile', 'Convex 준비 대기 중...');
@@ -540,6 +608,56 @@ async function handleGetOrCreateUser() {
   margin: 0 0 24px 0;
   font-size: 14px;
   text-align: center;
+}
+
+.signin-hint {
+  color: var(--grey-lv3);
+  font-size: 12px;
+  margin: 0 0 16px 0 !important;
+  text-align: center;
+}
+
+.signin-button {
+  width: 100%;
+  padding: 12px 24px;
+  border: 2px solid var(--main);
+  border-radius: 0;
+  background-color: var(--main);
+  color: var(--background);
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.signin-button:hover {
+  background-color: var(--background);
+  color: var(--main);
+}
+
+.signin-hint {
+  color: var(--grey-lv3);
+  font-size: 12px;
+  margin: 0 0 16px 0 !important;
+  text-align: center;
+}
+
+.signin-button {
+  width: 100%;
+  padding: 12px 24px;
+  border: 2px solid var(--main);
+  border-radius: 0;
+  background-color: var(--main);
+  color: var(--background);
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.signin-button:hover {
+  background-color: var(--background);
+  color: var(--main);
 }
 
 /**

@@ -35,9 +35,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch, onUnmounted } from 'vue'
+import { ref, onMounted, watch, onUnmounted, computed } from 'vue'
 import { useUser } from '@clerk/vue'
 import { useAppStore } from '@/stores/app'
+import { useConvexQuery, useConvexMutation } from "convex-vue"
+import { api } from "../convex/_generated/api"
+import type { Id } from "../convex/_generated/dataModel"
 import ConvexProvider from './components/convex-provider/ConvexProvider.vue'
 import AppHeader from './components/app-header/AppHeader.vue'
 import ExplorePlane from './components/explore-plane/ExplorePlane.vue'
@@ -63,7 +66,25 @@ const samplePages = ref<PageData[]>([
   }
 ])
 
-const savedTabs = ref<SavedTabGroup[]>([])
+const { data: savedTabsData } = useConvexQuery(api.tabs.getSavedTabs, {});
+const { mutate: saveTabsMutation } = useConvexMutation(api.tabs.saveTabs);
+const { mutate: deleteTabsMutation } = useConvexMutation(api.tabs.deleteSavedTabs);
+
+const savedTabs = computed<SavedTabGroup[]>(() => {
+  if (!savedTabsData.value) return [];
+
+  return savedTabsData.value.map(group => ({
+    id: group._id,
+    save_date: new Date(group.createdAt).toISOString(),
+    pages: group.tabs.map(tab => ({
+      title: tab.title || '',
+      description: '',
+      favicon: tab.favicon || '',
+      url: tab.url,
+      keyword: []
+    }))
+  }));
+});
 
 const toolbarSuggestions = querySuggestions
 
@@ -82,9 +103,18 @@ function handleToolbarSubmit(output: ToolbarOutput) {
 }
 
 async function handleSaveTabs(tabs: { save_date: string; pages: PageData[] }) {
-  // TODO: Convex API 호출
-  console.log('Saving tabs:', tabs)
-  savedTabs.value.push(tabs as SavedTabGroup)
+  console.log('Saving tabs to Convex:', tabs)
+  const tabsToSave = tabs.pages.map(p => ({
+    url: p.url,
+    favicon: p.favicon,
+    title: p.title
+  }));
+
+  try {
+    await saveTabsMutation({ tabs: tabsToSave });
+  } catch (error) {
+    console.error('Failed to save tabs:', error);
+  }
 }
 
 function handleNavigatePending() {
@@ -100,7 +130,11 @@ function handleOpenTabs(urls: string[]) {
 }
 
 function handleDeleteTabs(saveDate: string) {
-  savedTabs.value = savedTabs.value.filter(tab => tab.save_date !== saveDate)
+  const target = savedTabs.value.find(tab => tab.save_date === saveDate);
+  if (target && target.id) {
+    deleteTabsMutation({ id: target.id as Id<"savedTabs"> })
+      .catch(error => console.error('Failed to delete tabs:', error));
+  }
 }
 
 // 로그인 완료 감지 및 탐색하기 모드로 리다이렉트

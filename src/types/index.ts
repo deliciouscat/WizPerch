@@ -21,6 +21,7 @@ export interface CommentData {
 }
 
 export interface SavedTabGroup {
+  id?: string
   save_date: string
   pages: PageData[]
 }

@@ -58,4 +58,17 @@ export default defineSchema({
     })
         .index('by_user_id', ['userId'])
         .index('by_page_id', ['pageId']),
+
+    // 저장된 탭 테이블
+    savedTabs: defineTable({
+        userId: v.id('users'),
+        tabs: v.array(v.object({
+            url: v.string(),
+            favicon: v.optional(v.string()),
+            title: v.optional(v.string()),
+        })),
+        createdAt: v.number(),
+    })
+        .index('by_user_id', ['userId'])
+        .index('by_created_at', ['createdAt']),
 })

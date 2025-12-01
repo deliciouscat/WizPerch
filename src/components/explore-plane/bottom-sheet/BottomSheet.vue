@@ -100,8 +100,17 @@ const {
   }))
 )
 
+const emit = defineEmits<{
+  'update-counts': [count: number]
+}>()
+
 const comments = computed(() => commentsData.value?.page || [])
 const hasMore = computed(() => commentsData.value?.continueCursor !== null)
+
+// 댓글 수 변경 감지하여 부모에게 알림
+watch(comments, (newComments) => {
+  emit('update-counts', newComments.length)
+}, { immediate: true })
 
 // Convex mutation - 댓글 생성
 const { mutate: createComment, isPending: isSubmitting } = useConvexMutation(
@@ -163,6 +172,7 @@ function handleScroll() {
   flex-direction: column;
   background-color: var(--background);
   box-shadow: 0 -10px 20px rgba(0, 0, 0, 0.1);
+  height: 100%;
 }
 
 .gradient-area {
@@ -220,7 +230,8 @@ function handleScroll() {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  max-height: calc(100vh * 0.75);
+  flex: 1; /* 남은 공간 모두 차지 */
+  min-height: 0; /* Flexbox 스크롤 버그 방지 */
 }
 
 .comment-write-box {

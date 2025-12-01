@@ -38,7 +38,6 @@ export default defineSchema({
 
     // 페이지 테이블
     pages: defineTable({
-        pageId: v.id('pages'),
         url: v.string(),
         title: v.string(),
         passage: v.string(), // 페이지의 메모/요약
@@ -47,7 +46,7 @@ export default defineSchema({
         createdAt: v.number(),
         updatedAt: v.number(),
     })
-        .index('by_page_id', ['pageId']),
+        .index('by_url', ['url']), // URL로 검색하기 위한 인덱스 추가
 
     // 댓글 테이블
     comments: defineTable({

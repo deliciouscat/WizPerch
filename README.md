@@ -38,7 +38,10 @@
 # 디렉토리 구조
 ```
 ls:
-README.md         TODO_LIST.md      convex            index.html        node_modules      package-lock.json package.json      src               vite.config.ts
+README.md            index.html           package.json         tsconfig.json
+TODO_LIST.md         manifest.json        public               tsconfig.tsbuildinfo
+convex               node_modules         scripts              vite.config.ts
+dist                 package-lock.json    src
 
 
 tree src:
@@ -48,29 +51,41 @@ src
 ├── components
 │   ├── app-header
 │   │   ├── AppHeader.pseudocode.txt
+│   │   ├── AppHeader.vue
 │   │   ├── ToolBar.pseudoCode.txt
 │   │   └── ToolBar.vue
 │   ├── assets
+│   │   └── logo.svg
 │   ├── authPlane
 │   ├── convex-provider
 │   │   ├── ConvexProvider.vue
+│   │   ├── LoadingProgress.vue
 │   │   ├── LoadingSpinner.vue
+│   │   ├── NicknameSetup.vue
 │   │   ├── Settings.vue
 │   │   └── UserProfile.vue
 │   ├── explore-plane
 │   │   ├── ExplorePlane.pseudoCode.txt
+│   │   ├── ExplorePlane.vue
 │   │   ├── bottom-sheet
 │   │   │   ├── BottomSheet.pseudoCode.txt
-│   │   │   └── CommentBox.pseudoCode.txt
+│   │   │   ├── BottomSheet.vue
+│   │   │   ├── CommentBox.pseudoCode.txt
+│   │   │   └── CommentBox.vue
 │   │   ├── query_suggestions.json
 │   │   ├── recommend-n-search
 │   │   │   ├── Recommended.pseudoCode.txt
+│   │   │   ├── Recommended.vue
 │   │   │   ├── Search.pseudoCode.txt
-│   │   │   └── Sponsor.pseudoCode.txt
+│   │   │   ├── Search.ts
+│   │   │   ├── Sponsor.pseudoCode.txt
+│   │   │   └── Sponsor.vue
 │   │   └── talk-with-ai
 │   └── pending-plane
 │       ├── EachSavedTabList.pseudoCode.txt
-│       └── PendingPlane.pseudocode.txt
+│       ├── EachSavedTabList.vue
+│       ├── PendingPlane.pseudocode.txt
+│       └── PendingPlane.vue
 ├── env.d.ts
 ├── locales
 │   ├── en.json
@@ -79,10 +94,15 @@ src
 ├── main.ts
 ├── sampledata
 ├── stores
-└── styles
-    └── color_template.css
+│   └── app.ts
+├── styles
+│   └── color_template.css
+├── types
+│   └── index.ts
+└── utils
+    └── logger.ts
 
-15 directories, 24 files
+17 directories, 39 files
 
 
 tree convex:
@@ -94,9 +114,12 @@ convex
 │   ├── server.d.ts
 │   └── server.js
 ├── auth.config.js
+├── comments.ts
+├── pages.ts
 ├── schema.ts
+├── tabs.ts
 ├── tsconfig.json
 └── users.ts
 
-2 directories, 9 files
+2 directories, 12 files
 ```

@@ -34,7 +34,7 @@ export const getOrCreatePage = mutation({
     // URL로 기존 페이지 찾기
     const existingPage = await ctx.db
       .query("pages")
-      .filter((q) => q.eq(q.field("url"), args.url))
+      .withIndex("by_url", (q) => q.eq("url", args.url))
       .first();
 
     if (existingPage) {
@@ -51,7 +51,6 @@ export const getOrCreatePage = mutation({
 
     // 새 페이지 생성
     const pageId = await ctx.db.insert("pages", {
-      pageId: undefined as any, // Convex가 자동으로 생성
       url: args.url,
       title: args.title,
       passage: args.passage,
@@ -79,7 +78,7 @@ export const getPageByUrl = query({
   handler: async (ctx, args) => {
     return await ctx.db
       .query("pages")
-      .filter((q) => q.eq(q.field("url"), args.url))
+      .withIndex("by_url", (q) => q.eq("url", args.url))
       .first();
   },
 });

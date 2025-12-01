@@ -1,9 +1,5 @@
 <template>
-  <div 
-    class="comment-box" 
-    :class="{ expanded: isExpanded }"
-    @click.stop="handleExpand"
-  >
+  <div class="comment-box" :class="{ expanded: isExpanded }" @click.stop="handleExpand">
     <div class="nametag">{{ nametag }}</div>
     <div class="content-wrapper">
       <div v-if="isExpanded" class="content-expanded" v-html="renderedContent"></div>
@@ -96,4 +92,3 @@ function handleExpand() {
   font-style: italic;
 }
 </style>
-

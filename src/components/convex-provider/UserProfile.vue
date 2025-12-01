@@ -8,6 +8,12 @@
       <button @click="openSignInTab" class="signin-button">
         새 탭에서 로그인
       </button>
+      <p class="signin-hint" style="margin-top: 16px;">
+        로그인 완료 후 자동으로 탐색하기 페이지로 이동합니다.
+      </p>
+      <button @click="goBack" class="back-to-explore-button">
+        탐색하기로 돌아가기
+      </button>
     </div>
   </div>
 
@@ -17,6 +23,9 @@
       <h2>인증 초기화 중...</h2>
       <p>Convex 인증을 설정하는 중입니다. 잠시만 기다려주세요.</p>
       <LoadingSpinner size="medium" text="인증 설정 중..." />
+      <button @click="goBack" class="back-to-explore-button" style="margin-top: 24px;">
+        탐색하기로 돌아가기
+      </button>
     </div>
   </div>
 
@@ -332,7 +341,8 @@ function openSignInTab() {
         // 로그인 탭 ID를 storage에 저장하여 background.js에서 감지할 수 있도록 함
         chrome.storage.local.set({
           loginTabId: tab.id,
-          loginStartTime: Date.now()
+          loginStartTime: Date.now(),
+          loginTabClosed: false // 초기화
         });
       }
     });
@@ -379,9 +389,18 @@ function getInitials(name: string | undefined): string {
 
 /**
  * 뒤로가기 함수
+ * 탐색하기로 돌아가기 전에 앱을 새로고침하여 인증 상태를 확실하게 반영합니다.
+ * (로그인 화면에서의 복귀는 보통 인증 시도 후일 가능성이 높으므로)
  */
 function goBack() {
-  appStore.setOverlayMode(null);
+  // 현재 인증되지 않은 상태라면(로그인 화면), 앱을 새로고침하여 최신 인증 상태 확인
+  if (!isAuthenticated.value) {
+    logger.info('UserProfile', '탐색하기로 돌아가기: 앱 새로고침');
+    window.location.reload();
+  } else {
+    // 이미 인증된 상태라면 단순히 오버레이만 닫음
+    appStore.setOverlayMode(null);
+  }
 }
 
 /**
@@ -658,6 +677,25 @@ async function handleGetOrCreateUser() {
 .signin-button:hover {
   background-color: var(--background);
   color: var(--main);
+}
+
+.back-to-explore-button {
+  width: 100%;
+  padding: 12px 24px;
+  border: 2px solid var(--grey-lv2);
+  border-radius: 0;
+  background-color: var(--background);
+  color: var(--grey-lv2);
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 12px;
+}
+
+.back-to-explore-button:hover {
+  background-color: var(--grey-lv2);
+  color: var(--background);
 }
 
 /**

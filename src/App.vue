@@ -108,18 +108,15 @@ let loginCheckInterval: number | null = null
 
 function checkLoginComplete() {
   chrome.storage.local.get(['loginComplete', 'loginCompleteTime'], (result) => {
-    if (result.loginComplete && result.loginCompleteTime) {
-      // 로그인 완료 감지
-      console.log('로그인 완료 감지, 탐색하기 모드로 리다이렉트')
+    if (result.loginComplete) {
+      console.log('로그인 완료 플래그 감지. 앱을 새로고침하여 로그인 상태를 반영합니다.');
 
-      // 오버레이 모드 닫기 (프로필 화면에서 나가기)
-      appStore.setOverlayMode(null)
-
-      // 탐색하기 모드로 설정
-      appStore.setMode('explore')
-
-      // 로그인 완료 플래그 제거
-      chrome.storage.local.remove(['loginComplete', 'loginCompleteTime'])
+      // 플래그 삭제 후 리로드
+      chrome.storage.local.remove(['loginComplete', 'loginCompleteTime', 'loginCheckNeeded'], () => {
+        // 앱 새로고침 (가장 확실한 상태 동기화 방법)
+        // 새로고침 후에는 onMounted에서 setMode('explore')가 실행되어 탐색하기 화면으로 이동함
+        window.location.reload();
+      });
 
       // 체크 인터벌 정리
       if (loginCheckInterval !== null) {

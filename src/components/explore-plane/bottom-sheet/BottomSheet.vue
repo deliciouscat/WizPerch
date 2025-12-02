@@ -5,26 +5,23 @@
       <div class="nametag">{{ nametagDisplay }}</div>
       <button v-if="!isWriting" class="icon-button" @click.stop="startWriting">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 256 256">
-          <path d="M227.31,73.37,182.63,28.69a16,16,0,0,0-22.63,0L36.69,152A15.86,15.86,0,0,0,32,163.31V208a16,16,0,0,0,16,16H92.69A15.86,15.86,0,0,0,104,219.31L227.31,96a16,16,0,0,0,0-22.63ZM192,108.68,147.31,64l24-24L216,84.68Z"/>
+          <path
+            d="M227.31,73.37,182.63,28.69a16,16,0,0,0-22.63,0L36.69,152A15.86,15.86,0,0,0,32,163.31V208a16,16,0,0,0,16,16H92.69A15.86,15.86,0,0,0,104,219.31L227.31,96a16,16,0,0,0,0-22.63ZM192,108.68,147.31,64l24-24L216,84.68Z" />
         </svg>
       </button>
     </div>
     <div class="separator"></div>
-    
+
     <!-- separator 아래 영역을 scrollable 컨테이너로 감싸기 -->
     <div class="scrollable-content" ref="commentBoxRef" @scroll="handleScroll">
       <div v-if="isWriting" class="comment-write-box">
-        <textarea
-          v-model="commentInput"
-          placeholder="코멘트를 입력하세요."
-          class="comment-input"
-          rows="4"
-        ></textarea>
+        <textarea v-model="commentInput" placeholder="코멘트를 입력하세요." class="comment-input" rows="4"></textarea>
         <div class="comment-actions">
           <div class="spacer"></div>
           <button class="submit-button" @click.stop="handleCommentSubmit">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 256 256">
-              <path d="M237.66,122.34l-72-72a8,8,0,0,0-11.32,11.32L214.63,120H32a8,8,0,0,0,0,16H214.63L154.34,194.34a8,8,0,0,0,11.32,11.32l72-72A8,8,0,0,0,237.66,122.34Z"/>
+              <path
+                d="M237.66,122.34l-72-72a8,8,0,0,0-11.32,11.32L214.63,120H32a8,8,0,0,0,0,16H214.63L154.34,194.34a8,8,0,0,0,11.32,11.32l72-72A8,8,0,0,0,237.66,122.34Z" />
             </svg>
           </button>
         </div>
@@ -34,29 +31,23 @@
         <div v-if="isLoadingComments && comments.length === 0" class="loading-indicator">
           <div class="spinner"></div>
         </div>
-        
+
         <!-- 댓글 목록 -->
         <template v-else>
-          <CommentBox
-            v-for="comment in comments"
-            :key="comment._id"
-            :nametag="comment.userName"
-            :content="comment.content"
-            :commentId="comment._id"
-            :isExpanded="expandedCommentId === comment._id"
-            @expand="handleCommentExpand"
-          />
-          
+          <CommentBox v-for="comment in comments" :key="comment._id" :nametag="comment.userName"
+            :content="comment.content" :commentId="comment._id" :isExpanded="expandedCommentId === comment._id"
+            @expand="handleCommentExpand" />
+
           <!-- 더 로드 중 (무한 스크롤) -->
           <div v-if="hasMore && isLoadingComments" class="load-more-indicator">
             <div class="spinner"></div>
           </div>
-          
+
           <!-- 모든 댓글 로드 완료 -->
           <div v-if="!hasMore && comments.length > 0" class="end-indicator">
             더 이상 댓글이 없습니다.
           </div>
-          
+
           <!-- 댓글이 하나도 없을 때 -->
           <div v-if="comments.length === 0" class="empty-indicator">
             첫 댓글을 작성해보세요!
@@ -176,16 +167,19 @@ function handleScroll() {
   flex-direction: column;
   background-color: var(--background);
   box-shadow: 0 -10px 20px rgba(0, 0, 0, 0.1);
-  height: 100%; /* 부모 높이에 맞춤 */
-  overflow: hidden; /* 전체는 스크롤 안 함 */
+  height: 100%;
+  /* 부모 높이에 맞춤 */
+  overflow: hidden;
+  /* 전체는 스크롤 안 함 */
 }
 
 .gradient-area {
-  height: 18px;
+  height: 16px;
   width: 100%;
-  background: linear-gradient(180deg, var(--background) 0%, var(--grey-lv2) 100%);
+  background: linear-gradient(0deg, var(--background) 0%, var(--grey-lv2) 100%);
   cursor: pointer;
-  flex-shrink: 0; /* 축소 방지 */
+  flex-shrink: 0;
+  /* 축소 방지 */
 }
 
 .header-area {
@@ -194,7 +188,8 @@ function handleScroll() {
   justify-content: space-between;
   padding: 8px 16px;
   cursor: pointer;
-  flex-shrink: 0; /* 축소 방지 */
+  flex-shrink: 0;
+  /* 축소 방지 */
 }
 
 .nametag {
@@ -222,7 +217,8 @@ function handleScroll() {
   align-items: center;
   padding: 0 20px;
   margin: 8px 0;
-  flex-shrink: 0; /* 축소 방지 */
+  flex-shrink: 0;
+  /* 축소 방지 */
 }
 
 .separator::before {
@@ -234,9 +230,12 @@ function handleScroll() {
 
 /* separator 아래의 scrollable 영역 */
 .scrollable-content {
-  flex: 1; /* 남은 공간 모두 차지 */
-  overflow-y: auto; /* 이 영역만 스크롤 */
-  min-height: 0; /* Flexbox 스크롤 버그 방지 */
+  flex: 1;
+  /* 남은 공간 모두 차지 */
+  overflow-y: auto;
+  /* 이 영역만 스크롤 */
+  min-height: 0;
+  /* Flexbox 스크롤 버그 방지 */
 }
 
 .comment-box {
@@ -252,7 +251,8 @@ function handleScroll() {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  flex-shrink: 0; /* 축소 방지 */
+  flex-shrink: 0;
+  /* 축소 방지 */
 }
 
 .comment-input {
@@ -302,7 +302,8 @@ function handleScroll() {
   display: flex;
   justify-content: center;
   padding: 16px;
-  flex-shrink: 0; /* 축소 방지 */
+  flex-shrink: 0;
+  /* 축소 방지 */
 }
 
 .spinner {
@@ -326,7 +327,7 @@ function handleScroll() {
   padding: 16px;
   color: var(--grey-lv3);
   font-size: 14px;
-  flex-shrink: 0; /* 축소 방지 */
+  flex-shrink: 0;
+  /* 축소 방지 */
 }
 </style>
-

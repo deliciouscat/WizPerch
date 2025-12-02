@@ -2,7 +2,7 @@
   <div class="comment-box" :class="{ expanded: isExpanded }" @click.stop="handleExpand">
     <div class="nametag">{{ nametag }}</div>
     <div class="content-wrapper">
-      <div v-if="isExpanded" class="content-expanded" v-html="renderedContent"></div>
+      <div v-if="isExpanded" class="content-expanded markdown-body" v-html="renderedContent"></div>
       <div v-else class="content-collapsed">{{ content }}</div>
     </div>
   </div>
@@ -10,6 +10,8 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { marked } from 'marked'
+import DOMPurify from 'dompurify'
 
 interface Props {
   nametag: string
@@ -25,11 +27,15 @@ const emit = defineEmits<{
 }>()
 
 const renderedContent = computed(() => {
-  // 간단한 마크다운 렌더링 (실제로는 markdown 라이브러리 사용)
-  return props.content
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    .replace(/\n/g, '<br>')
+  try {
+    // marked로 마크다운 렌더링 (동기 버전 사용)
+    const htmlContent = marked.parse(props.content) as string
+    // XSS 방지를 위해 DOMPurify로 살균
+    return DOMPurify.sanitize(htmlContent)
+  } catch {
+    // 렌더링 실패 시 원본 텍스트 반환
+    return DOMPurify.sanitize(props.content.replace(/\n/g, '<br>'))
+  }
 })
 
 function handleExpand() {
@@ -95,5 +101,101 @@ function handleExpand() {
 
 .content-expanded :deep(em) {
   font-style: italic;
+}
+
+.markdown-body :deep(h1),
+.markdown-body :deep(h2),
+.markdown-body :deep(h3),
+.markdown-body :deep(h4),
+.markdown-body :deep(h5),
+.markdown-body :deep(h6) {
+  margin-top: 12px;
+  margin-bottom: 8px;
+  font-weight: bold;
+  line-height: 1.4;
+}
+
+.markdown-body :deep(h1) {
+  font-size: 24px;
+}
+
+.markdown-body :deep(h2) {
+  font-size: 20px;
+}
+
+.markdown-body :deep(h3) {
+  font-size: 18px;
+}
+
+.markdown-body :deep(p) {
+  margin-bottom: 8px;
+  line-height: 1.6;
+}
+
+.markdown-body :deep(ul),
+.markdown-body :deep(ol) {
+  margin-left: 16px;
+  margin-bottom: 8px;
+  padding-left: 16px;
+}
+
+.markdown-body :deep(li) {
+  margin-bottom: 4px;
+  line-height: 1.5;
+}
+
+.markdown-body :deep(code) {
+  background-color: var(--grey-lv1);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 12px;
+  color: var(--font-black);
+}
+
+.markdown-body :deep(pre) {
+  background-color: var(--grey-lv1);
+  border-radius: 4px;
+  padding: 12px;
+  overflow-x: auto;
+  margin-bottom: 12px;
+}
+
+.markdown-body :deep(pre code) {
+  background-color: transparent;
+  padding: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.markdown-body :deep(blockquote) {
+  border-left: 4px solid var(--grey-lv2);
+  margin-left: 0;
+  padding-left: 12px;
+  margin-bottom: 12px;
+  color: var(--font-grey);
+}
+
+.markdown-body :deep(a) {
+  color: #0969da;
+  text-decoration: none;
+}
+
+.markdown-body :deep(a:hover) {
+  text-decoration: underline;
+}
+
+.markdown-body :deep(hr) {
+  border: none;
+  height: 1px;
+  background-color: var(--grey-lv2);
+  margin: 12px 0;
+}
+
+.markdown-body :deep(img) {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+  margin: 8px 0;
 }
 </style>

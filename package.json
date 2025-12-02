@@ -29,8 +29,11 @@
         "@clerk/clerk-js": "^5.111.0",
         "@clerk/vue": "^1.11.6",
         "@phosphor-icons/vue": "^2.2.1",
+        "@types/dompurify": "^3.2.0",
         "convex": "^1.26.2",
         "convex-vue": "^0.1.5",
+        "dompurify": "^3.3.0",
+        "marked": "^17.0.1",
         "pinia": "^3.0.4",
         "vue": "^3.5.18"
     },

@@ -45,9 +45,10 @@ function handleExpand() {
   background-color: var(--background);
   cursor: pointer;
   transition: background-color 0.2s;
-  max-height: 96px;
+  height: 96px; /* 고정 높이 */
   overflow: hidden;
   position: relative;
+  flex-shrink: 0; /* 축소 방지 */
 }
 
 .comment-box:hover {
@@ -55,9 +56,12 @@ function handleExpand() {
 }
 
 .comment-box.expanded {
-  max-height: none;
+  height: auto; /* 동적 높이 */
+  max-height: 400px; /* 최대 높이 제한 */
   background-color: var(--background);
   box-shadow: inset 0 -8px 8px -8px var(--background);
+  overflow-y: auto; /* 내용이 길면 스크롤 */
+  flex-shrink: 0; /* 축소 방지 */
 }
 
 .nametag {
@@ -82,6 +86,7 @@ function handleExpand() {
 
 .content-expanded {
   white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .content-expanded :deep(strong) {

@@ -44,6 +44,7 @@ lerna-debug.log*
 convex/_generated/
 
 # Testing
+test-case/
 coverage/
 .nyc_output/
 
